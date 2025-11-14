@@ -71,10 +71,12 @@ export async function tmdbFetch<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const { apiKey, baseUrl } = getTmdbEnvConfig();
-  const url = `${baseUrl}${endpoint}`;
+
+  // Add api_key as query parameter (TMDB v3 API authentication)
+  const separator = endpoint.includes('?') ? '&' : '?';
+  const url = `${baseUrl}${endpoint}${separator}api_key=${apiKey}`;
 
   const defaultHeaders = {
-    Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
