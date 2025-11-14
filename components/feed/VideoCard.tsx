@@ -39,7 +39,10 @@ function VideoCardComponent({
   const { ref } = useVideoIntersection({
     threshold: 0.5,
     rootMargin: '100px', // Start loading slightly before visible
-    onVisibilityChange,
+    onVisibilityChange: (visible, ratio) => {
+      console.log('👁️ Visibility changed for', movie.title, '- visible:', visible, 'ratio:', ratio);
+      onVisibilityChange?.(visible);
+    },
   });
 
   const handleMovieClick = useCallback(() => {

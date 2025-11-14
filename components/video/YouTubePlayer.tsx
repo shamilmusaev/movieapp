@@ -71,12 +71,15 @@ function YouTubePlayerComponent({
     const params = new URLSearchParams({
       autoplay: '1', // Always enable autoplay (controlled by isActive via postMessage)
       mute: '1', // Always start muted for browser autoplay policy
-      controls: '1',
+      controls: '0', // Hide YouTube controls for immersive experience
       rel: '0', // Don't show related videos
       loop: '1',
       playlist: videoId, // Required for loop to work
       enablejsapi: '1', // Enable JavaScript API for better control
       playsinline: '1', // Play inline on iOS
+      fs: '0', // Disable fullscreen button
+      iv_load_policy: '3', // Hide video annotations
+      disablekb: '1', // Disable keyboard controls
     });
 
     console.log('🎥 Building iframe URL for video:', videoId);
@@ -146,25 +149,41 @@ function YouTubePlayerComponent({
 
   return (
     <div className={`relative w-full aspect-video ${className}`}>
-      {/* Loading spinner */}
-      {!isLoaded && (
+      {/* Loading or inactive state */}
+      {(!isActive || !isLoaded) && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          {!isActive ? (
+            <div className="text-white text-sm">Ready to play</div>
+          ) : (
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          )}
         </div>
       )}
 
-      {/* YouTube iframe */}
-      <iframe
-        ref={iframeRef}
-        src={buildIframeUrl(videoId)}
-        title="YouTube video player"
-        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-        allowFullScreen
-        onLoad={handleLoad}
-        onError={handleError}
-        className="absolute inset-0 w-full h-full"
-        style={{ border: 'none' }}
-      />
+      {/* YouTube iframe - only render when active for true autoplay */}
+      {isActive && (
+        <>
+          <iframe
+            ref={iframeRef}
+            src={buildIframeUrl(videoId)}
+            title="YouTube video player"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowFullScreen
+            onLoad={handleLoad}
+            onError={handleError}
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            style={{ border: 'none' }}
+          />
+
+          {/* Overlay to hide YouTube UI elements */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Hide top YouTube bar */}
+            <div className="absolute top-0 left-0 right-0 h-12 bg-transparent" />
+            {/* Hide bottom YouTube controls */}
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-transparent" />
+          </div>
+        </>
+      )}
     </div>
   );
 }
