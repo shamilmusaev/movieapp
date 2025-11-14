@@ -235,7 +235,11 @@ function VideoOverlayComponent({
                 .map((genre, index) => (
                   <span
                     key={index}
-                    className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-lg text-white text-sm font-medium border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
+                    className={`px-4 py-2 backdrop-blur-md rounded-lg text-sm font-medium border transition-colors cursor-pointer ${
+                      isTVShow
+                        ? 'bg-purple-500/20 text-purple-100 border-purple-500/30 hover:bg-purple-500/30'
+                        : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                    }`}
                   >
                     {genre}
                   </span>

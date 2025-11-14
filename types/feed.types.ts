@@ -18,6 +18,7 @@ export interface MovieWithTrailer extends Movie {
   releaseYear?: string; // Extracted from release_date
   posterUrl?: string | null; // Pre-computed full URL
   backdropUrl?: string | null; // Pre-computed full URL
+  first_air_date?: string; // For TV shows - release/first air date
 }
 
 export interface TMDBResponse<T> {
