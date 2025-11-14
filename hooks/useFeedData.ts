@@ -91,10 +91,8 @@ export function useFeedData(): UseFeedDataReturn {
         );
         console.log('🔢 New movies after filter:', newMovies.length);
 
-        // Update hasMore state from API response
-        if (page === 1) {
-          setState(prev => ({ ...prev, hasMore: data.hasMore }));
-        }
+        // Update hasMore state from API response for all pages
+        setState(prev => ({ ...prev, hasMore: data.hasMore }));
 
         return newMovies;
       } catch (error) {

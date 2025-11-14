@@ -109,12 +109,19 @@ export async function getMovieById(
   params: MovieDetailsParams = {}
 ): Promise<MovieDetails> {
   const { language = 'en-US', append_to_response } = params;
+  
+  // Build query parameters
+  const searchParams = new URLSearchParams();
+  searchParams.append('language', language);
+  if (append_to_response) {
+    searchParams.append('append_to_response', append_to_response);
+  }
+  
+  const endpoint = `/movie/${movieId}?${searchParams.toString()}`;
 
-  return tmdbGet(
-    `/movie/${movieId}`,
-    { language, ...(append_to_response && { append_to_response }) },
-    CACHE_CONFIG.MOVIE_DETAILS
-  );
+  return tmdbFetchWithRetry(endpoint, {
+    next: CACHE_CONFIG.MOVIE_DETAILS
+  });
 }
 
 /**
