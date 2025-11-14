@@ -54,7 +54,7 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
       setStreamingStatus('connecting');
 
       // Create EventSource for streaming
-      const eventSource = new EventSource(`/api/feed/trending/streaming-route?page=${page}`);
+      const eventSource = new EventSource(`/api/feed/trending?page=${page}`);
       eventSourceRef.current = eventSource;
 
       // Set timeout for connection

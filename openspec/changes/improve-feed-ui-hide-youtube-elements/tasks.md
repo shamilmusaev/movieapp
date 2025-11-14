@@ -40,22 +40,31 @@
 - [ ] 4.6 Handle tab change: update state, save to session storage, trigger feed reload
 - [ ] 4.7 Adjust `FeedContainer` height: `h-[calc(100vh-60px)]` to account for tab bar
 
-## 5. API Route Updates with Anime Discover Endpoint
+## 5. API Route Updates with Multi-Stage Anime Discover
 - [ ] 5.1 Update `/app/api/feed/trending/route.ts` to accept `media_type` query parameter ('movie' | 'tv' | 'anime')
 - [ ] 5.2 Map content types: 'movie' → `/trending/movie/day`, 'tv' → `/trending/tv/day`
-- [ ] 5.3 For 'anime': Use TMDB `/discover/movie` with parameters:
-  - [ ] 5.3a `with_genres=16` (Animation genre)
-  - [ ] 5.3b `region=JP` (Japan region)
-  - [ ] 5.3c `with_original_language=ja` (Japanese language)
-  - [ ] 5.3d `sort_by=popularity.desc` (sort by popularity)
-  - [ ] 5.3e `vote_count.gte=100` (minimum 100 votes for quality)
+- [ ] 5.3 For 'anime' - implement multi-stage fallback strategy:
+  - [ ] 5.3a **Stage 1:** Primary `/discover/movie` with:
+    - `with_origin_country=JP` (broader than region)
+    - `with_genres=16` (Animation)
+    - `sort_by=popularity.desc`
+    - `vote_count.gte=50` (lower threshold)
+  - [ ] 5.3b **Stage 2:** If results < 10, retry without `with_original_language` constraint
+  - [ ] 5.3c **Stage 3:** If still insufficient, try:
+    - `with_keywords=210024` (anime keyword ID)
+    - `with_genres=16`
+    - `sort_by=popularity.desc`
+  - [ ] 5.3d **Stage 4 (alternative):** Use `/trending/tv` and filter client-side for Animation genre
 - [ ] 5.4 **Critical:** For anime, `/discover` does NOT support `append_to_response=videos`
   - [ ] 5.4a Fetch anime movie list from `/discover/movie`
   - [ ] 5.4b Make separate parallel requests to `/movie/{id}/videos` for each anime movie
-  - [ ] 5.4c Aggregate results before returning to client
+  - [ ] 5.4c Use `Promise.allSettled` to handle movies without trailers
+  - [ ] 5.4d If >50% have no trailers, trigger fallback to next stage
+  - [ ] 5.4e Aggregate results before returning to client
 - [ ] 5.5 Add error handling for invalid media_type parameter
 - [ ] 5.6 Update TypeScript types for request parameters and response
-- [ ] 5.7 Test API route: `/api/feed/trending?media_type=movie`, `?media_type=tv`, `?media_type=anime`
+- [ ] 5.7 Test all anime fallback stages: verify each returns 10+ usable results
+- [ ] 5.8 Test API route endpoints: `?media_type=movie`, `?media_type=tv`, `?media_type=anime`
 
 ## 6. Hook Updates
 - [ ] 6.1 Update `useFeedData` hook signature to accept `contentType: FeedContentType`
@@ -65,19 +74,24 @@
 - [ ] 6.5 Maintain separate pagination state per content type (optional, or reset to page 1)
 - [ ] 6.6 Update loading state management for content type switches
 
-## 7. TMDB Integration for TV and Anime with Discover
+## 7. TMDB Integration for TV and Anime with Multi-Stage Fallback
 - [ ] 7.1 Verify TMDB `/trending/tv/day` endpoint structure (may have different fields than movies)
-- [ ] 7.2 Create utility function `discoverAnimeMovies(page: number)` in `/lib/api/tmdb/movies.ts`
-  - [ ] 7.2a Use `/discover/movie` endpoint with anime-specific filters
-  - [ ] 7.2b Return movie list (without videos, since append_to_response not supported)
+- [ ] 7.2 Create multi-stage anime fetch function `fetchAnimeMovies(page: number, attempt: 1|2|3|4)` in `/lib/api/tmdb/movies.ts`
+  - [ ] 7.2a Attempt 1: `/discover/movie` with `with_origin_country=JP`, `with_genres=16`, `vote_count.gte=50`
+  - [ ] 7.2b Attempt 2: Remove `with_original_language=ja` if results < 10
+  - [ ] 7.2c Attempt 3: Try `with_keywords=210024` (anime keyword) if still insufficient
+  - [ ] 7.2d Attempt 4: Fallback to `/trending/tv` filtered for Animation genre
+  - [ ] 7.2e Return movie/TV show list (without videos, append_to_response not supported)
 - [ ] 7.3 Create utility function `fetchMoviesWithVideos(movieIds: number[])` for batch video fetching
-  - [ ] 7.3a Accept array of movie IDs
-  - [ ] 7.3b Make parallel requests to `/movie/{id}/videos` for each ID
+  - [ ] 7.3a Accept array of movie/show IDs
+  - [ ] 7.3b Make parallel requests to `/movie/{id}/videos` (or `/tv/{id}/videos`) for each ID
   - [ ] 7.3c Use Promise.allSettled to handle partial failures
-  - [ ] 7.3d Return array of movies with extracted trailers
+  - [ ] 7.3d Track success rate: if < 50% have trailers, return failure flag
+  - [ ] 7.3e Return array with extracted trailers and success rate
 - [ ] 7.4 Test trailer extraction for TV shows (may use 'Teaser' or 'Clip' type instead of 'Trailer')
 - [ ] 7.5 Handle missing trailers for TV and anime content (show poster fallback)
-- [ ] 7.6 Verify anime results return Japanese animated content (not Western animation)
+- [ ] 7.6 Verify anime results return Japanese animated content (validate with sample checks)
+- [ ] 7.7 Test all 4 fallback stages end-to-end with real API calls
 
 ## 8. Styling and UX Polish
 - [ ] 8.1 Design tab bar styling: glassmorphism effect with `backdrop-blur-md` and `bg-black/80`

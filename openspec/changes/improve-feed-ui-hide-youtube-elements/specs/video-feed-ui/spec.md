@@ -78,10 +78,20 @@ The system SHALL provide horizontal tab navigation at the top of the feed allowi
 - **WHEN** user switches back to Movies tab
 - **THEN** previously loaded 20 movies are displayed immediately (cached state restored)
 
-#### Scenario: Anime filtering with specific TMDB parameters
+#### Scenario: Anime filtering with multi-stage strategy
 - **GIVEN** user switches to Anime tab
 - **WHEN** API route fetches anime content
-- **THEN** request uses `/discover/movie` with `with_genres=16`, `region=JP`, `with_original_language=ja`, `sort_by=popularity.desc`, `vote_count.gte=100`
+- **THEN** request uses `/discover/movie` with `with_origin_country=JP`, `with_genres=16`, `sort_by=popularity.desc`, `vote_count.gte=50`
+
+#### Scenario: Anime fallback when insufficient results
+- **GIVEN** primary anime discover returns < 10 results
+- **WHEN** API route evaluates results
+- **THEN** system retries without `with_original_language` constraint or uses `with_keywords=210024` (anime keyword)
+
+#### Scenario: Anime trailer fetching without append_to_response
+- **GIVEN** anime movies fetched from `/discover`
+- **WHEN** API route needs trailers
+- **THEN** system makes separate parallel `/movie/{id}/videos` requests for each anime movie (discover does not support append_to_response)
 
 ## MODIFIED Requirements
 

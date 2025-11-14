@@ -23,11 +23,32 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 - Default to "Movies" tab on first visit
 
 ### Technical Implementation
-- **YouTube UI hiding:** CSS overlay strategy with corner blocks (showinfo=0 parameter is removed by YouTube and no longer works)
-- **Feed state structure:** `Record<FeedContentType, FeedState>` to maintain independent pagination per content type
-- Create new `FeedTypeSelector` component for tab navigation
-- Update API route to accept `media_type` parameter (movie, tv, anime)
-- Anime filtering via `/discover/movie` with `with_genres=16`, `region=JP`, `with_original_language=ja`, and separate trailer fetching (append_to_response not supported on discover)
+
+**YouTube UI Hiding:**
+- CSS overlay with 4 corner blocks (absolute positioned divs)
+- No iframe parameters can hide YouTube's title/branding (all deprecated)
+- Physical blocking is the ONLY working approach
+
+**Feed State Management:**
+- Structure: `Record<FeedContentType, FeedState>` where each FeedState contains:
+  - `movies: MovieWithTrailer[]` - loaded content for this type
+  - `page: number` - current pagination page
+  - `hasMore: boolean` - pagination flag
+  - `viewedMovieIds: Set<number>` - deduplication per type
+  - `loading: boolean`, `error: string | null`
+- On tab switch: restore cached state if exists, else initialize new FeedState
+- Independent pagination: scrolling Movies doesn't affect TV Shows page counter
+
+**Component Changes:**
+- Create `FeedTypeSelector` component for tab navigation
+- Update `useFeedData` hook to maintain `feedStateMap: Record<FeedContentType, FeedState>`
+- Update API route `/api/feed/trending` to accept `media_type` query parameter
+
+**Anime Content Strategy:**
+- Primary: `/discover/movie` with `with_origin_country=JP`, `with_genres=16` (Animation)
+- Fallback 1: Remove `with_original_language` constraint if results < 10
+- Fallback 2: Use `/trending/tv` filtered by Animation genre for anime series
+- Trailer fetching: `/discover` does NOT support `append_to_response`, requires separate parallel `/movie/{id}/videos` calls
 
 ## Impact
 
@@ -50,35 +71,44 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 
 ## Notes
 
-**YouTube UI Hiding Strategy:**
-- **Critical:** `showinfo=0` parameter is REMOVED by YouTube and does NOT work
-- Use `controls=0` to hide player controls, but this does NOT hide title/branding
-- Implement CSS overlay with 4 corner blocks:
+**YouTube UI Hiding Implementation Details:**
+- **No iframe parameters work:** All YouTube parameters (showinfo, modestbranding, etc.) that hide branding are deprecated and removed
+- **Only solution:** Physical CSS overlays
+- 4 corner blocks with `absolute` positioning:
   - Top-left block: 200px × 70px (covers channel avatar, title start)
   - Top-right block: 200px × 70px (covers "Copy link", "1/1" counter)
-  - Bottom-left block: full width × 50px (covers progress bar)
-  - Bottom-right block: handled by bottom overlay
-- All overlays use `pointer-events: none` to allow swipe gestures
-- Use `bg-black` or `bg-gradient-to-center` for smooth masking
-- Test on mobile Safari and Chrome Android for consistency (UI elements may shift)
+  - Bottom overlay: full width × 50px (covers progress bar, remaining controls)
+- All overlays: `pointer-events: none` for gesture passthrough
+- Styling: `bg-black` or `bg-gradient-to-center from-black` for smooth edges
+- Test across: Chrome desktop, Safari desktop, iOS Safari, Chrome Android
+- Handle aspect ratio variations (16:9, portrait) - overlays may need responsive sizing
 
-**Content Types:**
-- **Movies:** TMDB `/trending/movie/day` (existing)
-- **TV Shows:** TMDB `/trending/tv/day`
-- **Anime:** TMDB `/discover/movie` with parameters:
-  - `with_genres=16` (Animation genre ID)
-  - `region=JP` (Japan region)
-  - `with_original_language=ja` (Japanese language)
-  - `sort_by=popularity.desc` (sort by popularity)
-  - `vote_count.gte=100` (minimum vote threshold for quality)
-  - **Note:** `/discover` does NOT support `append_to_response=videos`, so trailer fetching requires separate `/movie/{id}/videos` calls per anime movie
+**Anime Filtering Strategy (Multi-Stage):**
+1. **Primary attempt:** `/discover/movie` with:
+   - `with_origin_country=JP` (Japan as origin country - broader than region)
+   - `with_genres=16` (Animation genre)
+   - `sort_by=popularity.desc`
+   - `vote_count.gte=50` (lower threshold than originally planned)
+   - `page={page}`
 
-**Feed State Structure:**
-- Maintain `Record<FeedContentType, FeedState>` mapping each content type to its own state
-- Each `FeedState` contains: `movies`, `page`, `hasMore`, `viewedMovieIds`, `loading`, `error`
-- When switching tabs: restore previous state if exists, or initialize new state
-- Cache loaded content to avoid re-fetching when returning to previously viewed tab
-- Independent pagination per content type (scrolling in Movies doesn't affect TV Shows page)
+2. **If primary returns < 10 results:** Remove `with_original_language=ja` constraint (some anime have English metadata)
+
+3. **If still insufficient:** Fallback to `/discover/movie` with:
+   - `with_keywords=210024` (anime keyword ID in TMDB)
+   - `with_genres=16`
+   - `sort_by=popularity.desc`
+
+4. **Alternative source:** `/trending/tv` filtered client-side for Animation genre (anime series vs movies)
+
+5. **Trailer fetching:** `/discover` endpoint does NOT support `append_to_response=videos`
+   - Must make separate parallel requests to `/movie/{id}/videos` for each anime result
+   - Use `Promise.allSettled` to handle movies without trailers gracefully
+   - If > 50% have no trailers, fall back to TV Shows or expand filters
+
+**Content Type Endpoints:**
+- **Movies:** `/trending/movie/day` (existing, working well)
+- **TV Shows:** `/trending/tv/day` (straightforward)
+- **Anime:** Multi-stage `/discover/movie` + fallbacks (complex due to limited trailer availability)
 
 **Future Enhancements (not in this change):**
 - Persistent tab preference across sessions (localStorage - currently sessionStorage only)
