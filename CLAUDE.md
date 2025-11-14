@@ -17,6 +17,11 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
+## Npm Run Build 
+
+**После имплементации**(`/openspec:apply`)
+- После завершения каждой имплементации запускай npm run build чтобы узнать есть ли ошибки во время билда и исправь ошибки если они есть
+
 
 ## Git Workflow Instructions
 
