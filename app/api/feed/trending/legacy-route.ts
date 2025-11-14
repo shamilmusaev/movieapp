@@ -1,0 +1,163 @@
+/**
+ * API Route Handler for aggregated trending feed data
+ * Optimizes performance by fetching and transforming data server-side
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getTrendingMovies, getMovieById } from '@/lib/api/tmdb/movies';
+import { transformMovieForFeedServer } from '@/lib/utils/feed-server';
+import type { FeedApiResponse } from '@/types/api.types';
+import type { FeedMovie } from '@/types/feed.types';
+
+// Enable ISR caching for 30 minutes (shorter for trending content)
+export const revalidate = 1800;
+
+/**
+ * GET handler for trending feed data
+ * Returns pre-processed movie data with trailers in a single request
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Parse page parameter from query string
+    const { searchParams } = new URL(request.url);
+    const pageParam = searchParams.get('page');
+    const page = pageParam ? parseInt(pageParam, 10) : 1;
+
+    // Validate page parameter
+    if (isNaN(page) || page < 1) {
+      return NextResponse.json(
+        { error: 'Invalid page parameter' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🎬 Fetching trending movies for page ${page}...`);
+
+    // 1. Fetch trending movies list
+    const trendingResponse = await getTrendingMovies({
+      time_window: 'day',
+      page,
+    });
+
+    console.log(`✅ Got ${trendingResponse.results.length} trending movies`);
+
+    if (trendingResponse.results.length === 0) {
+      // Return empty response for pages with no results
+      const response: FeedApiResponse = {
+        movies: [],
+        page,
+        totalPages: trendingResponse.total_pages,
+        hasMore: false,
+      };
+      return NextResponse.json(response);
+    }
+
+    // 2. Limit to 20 movies per page for better user experience
+    const moviesToProcess = trendingResponse.results.slice(0, 20);
+    console.log(`📦 Processing ${moviesToProcess.length} movies...`);
+
+    // 3. Fetch movie details with videos in batches for progressive loading
+    console.log(`📦 Processing ${moviesToProcess.length} movies in progressive batches...`);
+    
+    // First batch - priority movies (first 8 for immediate display)
+    const priorityMovies = moviesToProcess.slice(0, 8);
+    const remainingMovies = moviesToProcess.slice(8);
+    
+    // Process priority movies first
+    const priorityPromises = priorityMovies.map(async (movie) => {
+      try {
+        // Fetch movie details with videos in single request
+        const movieDetails = await getMovieById(movie.id, {
+          append_to_response: 'videos',
+        });
+
+        // Transform to feed format on server
+        const feedMovie = await transformMovieForFeedServer(movieDetails);
+        return feedMovie;
+      } catch (error) {
+        console.warn(`❌ Failed to process movie ${movie.id}:`, error);
+        return null;
+      }
+    });
+
+    // Wait for priority movies to complete first
+    const priorityResults = await Promise.allSettled(priorityPromises);
+    
+    // Extract successful priority results
+    const processedPriorityMovies = priorityResults
+      .filter((result): result is PromiseFulfilledResult<any> => 
+        result.status === 'fulfilled' && result.value !== null
+      )
+      .map(result => result.value);
+
+    console.log(`✅ Processed ${processedPriorityMovies.length} priority movies`);
+
+    // Process remaining movies in background batches
+    const backgroundMovies: FeedMovie[] = [];
+    if (remainingMovies.length > 0) {
+      const batchSize = 4; // Smaller batches for faster processing
+      for (let i = 0; i < remainingMovies.length; i += batchSize) {
+        const batch = remainingMovies.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (movie) => {
+          try {
+            const movieDetails = await getMovieById(movie.id, {
+              append_to_response: 'videos',
+            });
+
+            const feedMovie = await transformMovieForFeedServer(movieDetails);
+            return feedMovie;
+          } catch (error) {
+            console.warn(`❌ Failed to process movie ${movie.id}:`, error);
+            return null;
+          }
+        });
+
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        const successfulBatch = batchResults
+          .filter((result): result is PromiseFulfilledResult<any> => 
+            result.status === 'fulfilled' && result.value !== null
+          )
+          .map(result => result.value);
+
+        backgroundMovies.push(...successfulBatch);
+        console.log(`✅ Processed batch ${Math.floor(i/batchSize) + 1}: ${successfulBatch.length} movies`);
+      }
+    }
+
+    // Combine priority and background movies
+    const allMovies = [...processedPriorityMovies, ...backgroundMovies];
+    const movieResults = allMovies.map(movie => ({ status: 'fulfilled' as const, value: movie }));
+    
+    // 5. Build response with pagination info (all movies already filtered)
+    const movies = allMovies;
+    console.log(`✅ Successfully processed ${movies.length} movies (${processedPriorityMovies.length} priority + ${backgroundMovies.length} background)`);
+
+    // 6. Build response with pagination info
+    const response: FeedApiResponse = {
+      movies,
+      page,
+      totalPages: trendingResponse.total_pages,
+      hasMore: page < trendingResponse.total_pages && movies.length > 0,
+    };
+
+    console.log(`📤 Returning ${movies.length} movies, hasMore: ${response.hasMore}`);
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('❌ Error in feed API route:', error);
+    
+    // Return appropriate error response
+    return NextResponse.json(
+      { 
+        error: error instanceof Error ? error.message : 'Internal server error',
+        movies: [],
+        page: 1,
+        totalPages: 0,
+        hasMore: false,
+      } as FeedApiResponse & { error: string },
+      { status: 500 }
+    );
+  }
+}

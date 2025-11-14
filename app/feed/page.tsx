@@ -2,14 +2,15 @@
 
 /**
  * Feed page - Main vertical video feed
+ * Uses streaming for instant content loading
  */
 
 import { FeedContainer } from '@/components/feed/FeedContainer';
-import { useFeedData } from '@/hooks/useFeedData';
+import { useStreamingFeedData } from '@/hooks/useStreamingFeedData';
 import type { MovieWithTrailer } from '@/types/feed.types';
 
 export default function FeedPage() {
-  const { movies, loading, error, hasMore, loadMore, retry } = useFeedData();
+  const { movies, loading, error, hasMore, loadMore, retry, streamingStatus } = useStreamingFeedData();
 
   /**
    * Handle movie card click
@@ -68,9 +69,38 @@ export default function FeedPage() {
     );
   }
 
+  // Streaming status indicator
+  const StreamingIndicator = () => {
+    if (!streamingStatus) return null;
+    
+    const getStatusText = () => {
+      switch (streamingStatus) {
+        case 'connecting': return 'Connecting...';
+        case 'connected': return 'Fetching...';
+        case 'fetching_trending': return 'Getting trending movies...';
+        case 'processing_priority': return 'Loading priority movies...';
+        case 'showing_priority': return 'Priority movies ready!';
+        case (streamingStatus && streamingStatus.startsWith('batch_')): return `Loading batch ${streamingStatus.split('_')[1]}...`;
+        case 'complete': return 'Streaming complete!';
+        case 'timeout': return 'Connection timeout';
+        case 'error': return 'Streaming error';
+        case 'canceled': return 'Connection canceled';
+        default: return streamingStatus;
+      }
+    };
+
+    return (
+      <div className="fixed top-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg z-50 backdrop-blur-sm">
+        <div className="text-xs uppercase tracking-wide opacity-75 mb-1">Stream Status</div>
+        <div className="text-sm font-medium">{getStatusText()}</div>
+      </div>
+    );
+  };
+
   // Main feed view
   return (
     <main className="w-full h-screen overflow-hidden">
+      <StreamingIndicator />
       <FeedContainer
         movies={movies}
         loading={loading}
