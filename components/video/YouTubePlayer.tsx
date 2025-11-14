@@ -228,23 +228,21 @@ function YouTubePlayerComponent({
       />
 
       {/* Overlay to hide YouTube UI elements with corner blocks */}
-      <div className={`absolute inset-0 pointer-events-none z-10 transition-opacity duration-300 ${
-        isActive ? 'opacity-100' : 'opacity-0'
-      }`}>
+      <div className="absolute inset-0 pointer-events-none z-10">
         {/* Top-left corner block - covers channel avatar and title start */}
-        <div 
+        <div
           className="absolute top-0 left-0 w-[200px] h-[70px] bg-gradient-to-r from-black via-black/95 to-transparent"
           aria-hidden="true"
         />
-        
-        {/* Top-right corner block - covers "Copy link" button and "1/1" counter */}
-        <div 
+
+        {/* Top-right corner block - covers "Watch later", "Share" and "1/1" counter */}
+        <div
           className="absolute top-0 right-0 w-[200px] h-[70px] bg-gradient-to-l from-black via-black/95 to-transparent"
           aria-hidden="true"
         />
-        
+
         {/* Bottom overlay - covers progress bar and remaining controls */}
-        <div 
+        <div
           className="absolute bottom-0 left-0 right-0 h-[50px] bg-gradient-to-t from-black via-black/90 to-transparent"
           aria-hidden="true"
         />
