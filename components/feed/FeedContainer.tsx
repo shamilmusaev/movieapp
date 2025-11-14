@@ -30,9 +30,15 @@ function FeedContainerComponent({
 }: FeedContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [activeVideoId, setActiveVideoId] = useState<number | null>(
-    movies[0]?.id ?? null
-  );
+  const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
+
+  // Set active video when movies load
+  useEffect(() => {
+    if (movies.length > 0 && activeVideoId === null) {
+      setActiveVideoId(movies[0].id);
+      console.log('🎬 Setting first video as active:', movies[0].title);
+    }
+  }, [movies, activeVideoId]);
 
   /**
    * Handle video visibility change

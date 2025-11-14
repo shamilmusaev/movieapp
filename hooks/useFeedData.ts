@@ -88,8 +88,8 @@ export function useFeedData(): UseFeedDataReturn {
           return [];
         }
 
-        // Limit to 30 movies for initial load
-        const moviesToProcess = page === 1 ? newMovies.slice(0, 30) : newMovies;
+        // Limit to 10 movies for initial load (balance between content and speed)
+        const moviesToProcess = page === 1 ? newMovies.slice(0, 10) : newMovies;
         console.log('📦 Movies to process:', moviesToProcess.length);
 
         // Fetch trailers in batches of 5 (respect rate limits)

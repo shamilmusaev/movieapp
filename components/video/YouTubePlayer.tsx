@@ -69,8 +69,8 @@ function YouTubePlayerComponent({
   // Build YouTube iframe URL with 2024 best practices
   const buildIframeUrl = (videoId: string): string => {
     const params = new URLSearchParams({
-      autoplay: '1',
-      mute: isMuted ? '1' : '0',
+      autoplay: '1', // Always enable autoplay (controlled by isActive via postMessage)
+      mute: '1', // Always start muted for browser autoplay policy
       controls: '1',
       rel: '0', // Don't show related videos
       loop: '1',
@@ -79,30 +79,42 @@ function YouTubePlayerComponent({
       playsinline: '1', // Play inline on iOS
     });
 
+    console.log('🎥 Building iframe URL for video:', videoId);
     return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
-  // Control playback based on isActive and isPlaying
+  // Control playback based on isActive
   useEffect(() => {
-    if (!iframeRef.current) return;
+    if (!iframeRef.current || !isLoaded) return;
 
-    try {
-      // Post message to YouTube iframe API
-      const iframe = iframeRef.current;
-      const command = isActive && isPlaying ? 'playVideo' : 'pauseVideo';
+    console.log('▶️ YouTube playback control - isActive:', isActive, 'isPlaying:', isPlaying, 'videoId:', videoId);
 
-      iframe.contentWindow?.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: command,
-          args: '',
-        }),
-        '*'
-      );
-    } catch (error) {
-      console.warn('Failed to control YouTube player:', error);
-    }
-  }, [isActive, isPlaying]);
+    // Small delay to ensure YouTube API is ready
+    const timer = setTimeout(() => {
+      try {
+        const iframe = iframeRef.current;
+        if (!iframe) return;
+
+        // Play if active and playing state is true, otherwise pause
+        const command = isActive && isPlaying ? 'playVideo' : 'pauseVideo';
+
+        console.log('📡 Sending command to YouTube:', command);
+
+        iframe.contentWindow?.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: command,
+            args: '',
+          }),
+          '*'
+        );
+      } catch (error) {
+        console.warn('Failed to control YouTube player:', error);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [isActive, isPlaying, videoId, isLoaded]);
 
   // Handle iframe load
   const handleLoad = () => {
