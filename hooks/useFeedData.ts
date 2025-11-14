@@ -88,12 +88,12 @@ export function useFeedData(): UseFeedDataReturn {
           return [];
         }
 
-        // Limit to 5 movies for initial load to improve performance
-        const moviesToProcess = page === 1 ? newMovies.slice(0, 5) : newMovies;
+        // Limit to 30 movies for initial load
+        const moviesToProcess = page === 1 ? newMovies.slice(0, 30) : newMovies;
         console.log('📦 Movies to process:', moviesToProcess.length);
 
-        // Fetch trailers in batches of 3 (respect rate limits)
-        const movieChunks = chunkArray(moviesToProcess, 3);
+        // Fetch trailers in batches of 5 (respect rate limits)
+        const movieChunks = chunkArray(moviesToProcess, 5);
         const moviesWithTrailers: MovieWithTrailer[] = [];
 
         console.log('🎬 Processing', movieChunks.length, 'batches...');
