@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(response);
     }
 
-    // 2. Limit to 10 movies per page for optimal performance
-    const moviesToProcess = trendingResponse.results.slice(0, 10);
+    // 2. Limit to 20 movies per page for better user experience
+    const moviesToProcess = trendingResponse.results.slice(0, 20);
     console.log(`📦 Processing ${moviesToProcess.length} movies...`);
 
     // 3. Fetch movie details with videos in parallel
