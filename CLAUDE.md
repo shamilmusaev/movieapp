@@ -33,17 +33,12 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 **ВАЖНО**: После выполнения следующих действий ВСЕГДА делай git push:
 
-1. **После создания proposal change** (`/openspec:proposal`)
-   - Создай коммит с изменениями
-   - Запуши в GitHub: `git push`
+
 
 2. **После имплементации** (`/openspec:apply`)
    - Создай коммит с изменениями
    - Запуши в GitHub: `git push`
 
-3. **После архивации** (`/openspec:archive`)
-   - Создай коммит с изменениями
-   - Запуши в GitHub: `git push`
 
 **Порядок действий**:
 

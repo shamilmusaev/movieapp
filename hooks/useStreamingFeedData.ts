@@ -94,13 +94,26 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
       };
 
       eventSource.addEventListener('start', (event) => {
-        const data = JSON.parse(event.data);
-        setStreamingStatus(data.status);
-        console.log('📡 Stream started:', data.status);
+        try {
+          if (!event.data || event.data === '') {
+            console.warn('⚠️ Empty start event received');
+            return;
+          }
+          const data = JSON.parse(event.data);
+          setStreamingStatus(data.status);
+          console.log('📡 Stream started:', data.status);
+        } catch (error) {
+          console.error('❌ Error parsing start event:', error);
+        }
       });
 
       eventSource.addEventListener('movie', (event) => {
         try {
+          if (!event.data || event.data === '') {
+            console.warn('⚠️ Empty movie event received');
+            return;
+          }
+          
           const data = JSON.parse(event.data);
           const { movie, index, total, type } = data;
           
@@ -138,6 +151,11 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
       // Handle status updates
       const statusHandler = (event: MessageEvent) => {
         try {
+          if (!event.data || event.data === '') {
+            console.warn('⚠️ Empty status event received');
+            return;
+          }
+          
           const data = JSON.parse(event.data);
           setStreamingStatus(data.status);
           console.log('📊 Status update:', data.status);
@@ -156,6 +174,11 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
 
       eventSource.addEventListener('complete', (event) => {
         try {
+          if (!event.data || event.data === '') {
+            console.warn('⚠️ Empty complete event received');
+            return;
+          }
+          
           const data = JSON.parse(event.data);
           console.log('🎉 Streaming complete:', {
             total: data.movies.length,
@@ -206,20 +229,25 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
 
       eventSource.addEventListener('error', (event: any) => {
         try {
-          const data = JSON.parse(event.data);
-          console.error('❌ Stream error:', data);
+          // EventSource error events may not have data property
+          let data = null;
+          if (event.data && event.data !== '') {
+            data = JSON.parse(event.data);
+          }
+          
+          console.error('❌ Stream error:', data || event);
           setStreamingStatus('error');
           setState(prev => ({
             ...prev,
             loading: false,
-            error: data.error || 'Streaming error occurred'
+            error: data?.error || 'Streaming connection failed'
           }));
-        } catch (error) {
-          console.error('❌ Error parsing error event:', error);
+        } catch (parseError) {
+          console.error('❌ Error parsing error event:', parseError);
           setState(prev => ({
             ...prev,
             loading: false,
-            error: 'Unknown streaming error'
+            error: 'Streaming connection failed'
           }));
         }
         eventSource.close();
