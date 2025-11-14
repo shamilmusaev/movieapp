@@ -247,7 +247,7 @@
 - Настроить структуру папок.
 - Подключить Tailwind (mobile first).
 - Создать layout для ленты, карточки, коллекций.
-- Подключить TMDB client.
+- Подключить TMDB client. 
 
 ## Proposal 2: Basic Vertical Feed UI (Mock Data)
 - Вертикальная лента.

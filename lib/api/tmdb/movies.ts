@@ -36,12 +36,13 @@ export async function getTrendingMovies(
   const {
     media_type = 'movie',
     time_window = 'week',
-    language = 'en-US'
+    language = 'en-US',
+    page = 1
   } = params;
 
   return tmdbGet(
     `/trending/${media_type}/${time_window}`,
-    { language },
+    { language, page: page.toString() },
     CACHE_CONFIG.MOVIE_LISTS
   );
 }

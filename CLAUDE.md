@@ -23,6 +23,12 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - После завершения каждой имплементации запускай npm run build чтобы узнать есть ли ошибки во время билда и исправь ошибки если они есть
 
 
+## Отмечай tasks как выполненые 
+
+2. **После имплементации** (`/openspec:apply`)
+    - Отмечай задачи в tasks как выполненные
+
+
 ## Git Workflow Instructions
 
 **ВАЖНО**: После выполнения следующих действий ВСЕГДА делай git push:

@@ -54,6 +54,7 @@ export interface TrendingMoviesParams {
   media_type?: 'all' | 'movie' | 'tv' | 'person';
   time_window?: 'day' | 'week';
   language?: string;
+  page?: number;
 }
 
 // API endpoint configuration
