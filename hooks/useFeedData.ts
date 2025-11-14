@@ -2,14 +2,13 @@
 
 /**
  * Hook for fetching and managing feed data with pagination
+ * Optimized to use server-side aggregation API for better performance
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { getTrendingMovies } from '@/lib/api/tmdb/movies';
 import { getMovieGenres } from '@/lib/api/tmdb/genres';
-import { transformMovieForFeed, chunkArray } from '@/lib/utils/feed';
 import type { MovieWithTrailer, FeedState, Genre } from '@/types/feed.types';
-import type { Movie } from '@/types/movie.types';
+import type { FeedApiResponse } from '@/types/api.types';
 
 interface UseFeedDataReturn extends FeedState {
   loadMore: () => Promise<void>;
@@ -19,12 +18,13 @@ interface UseFeedDataReturn extends FeedState {
 
 /**
  * Custom hook for managing feed data with trending movies
- * Handles pagination, deduplication, and trailer fetching
+ * Optimized to use server-side aggregation for faster initial loading
+ * Handles pagination and deduplication, with async genre loading
  */
 export function useFeedData(): UseFeedDataReturn {
   const [state, setState] = useState<FeedState>({
     movies: [],
-    loading: true, // Loading from the start (genres + movies)
+    loading: true,
     error: null,
     hasMore: true,
     page: 1,
@@ -33,12 +33,12 @@ export function useFeedData(): UseFeedDataReturn {
 
   const [genreMap, setGenreMap] = useState<Map<number, string>>(new Map());
 
-  // Load genres on mount
+  // Load genres asynchronously without blocking the feed
   useEffect(() => {
     let cancelled = false;
 
     async function loadGenres() {
-      console.log('🎭 Loading genres...');
+      console.log('🎭 Loading genres asynchronously...');
       try {
         const genres = await getMovieGenres();
         console.log('✅ Genres loaded:', genres.length);
@@ -52,6 +52,11 @@ export function useFeedData(): UseFeedDataReturn {
         }
       } catch (error) {
         console.error('❌ Failed to load genres:', error);
+        // Don't set error state - feed continues without genres
+        if (!cancelled) {
+          setGenreMap(new Map());
+          console.log('⚠️ Continuing without genres due to error');
+        }
       }
     }
 
@@ -63,83 +68,48 @@ export function useFeedData(): UseFeedDataReturn {
   }, []);
 
   /**
-   * Fetch movies for a specific page
+   * Fetch movies for a specific page from the optimized API
    */
   const fetchMovies = useCallback(
     async (page: number): Promise<MovieWithTrailer[]> => {
       console.log('📄 fetchMovies called for page:', page);
       try {
-        // Fetch trending movies
-        console.log('🔎 Calling getTrendingMovies...');
-        const response = await getTrendingMovies({
-          time_window: 'day',
-          page,
-        });
-        console.log('✅ Got trending movies:', response.results.length);
+        // Call our optimized API endpoint that returns pre-processed data
+        console.log('🔎 Calling /api/feed/trending...');
+        const response = await fetch(`/api/feed/trending?page=${page}`);
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data: FeedApiResponse = await response.json();
+        console.log('✅ Got feed data:', data.movies.length);
 
         // Filter out already viewed movies
-        const newMovies = response.results.filter(
-          (movie: Movie) => !state.viewedMovieIds.has(movie.id)
+        const newMovies = data.movies.filter(
+          (movie: MovieWithTrailer) => !state.viewedMovieIds.has(movie.id)
         );
         console.log('🔢 New movies after filter:', newMovies.length);
 
-        if (newMovies.length === 0) {
-          console.log('⚠️ No new movies to process');
-          return [];
+        // Update hasMore state from API response
+        if (page === 1) {
+          setState(prev => ({ ...prev, hasMore: data.hasMore }));
         }
 
-        // Limit to 10 movies for initial load (balance between content and speed)
-        const moviesToProcess = page === 1 ? newMovies.slice(0, 10) : newMovies;
-        console.log('📦 Movies to process:', moviesToProcess.length);
-
-        // Fetch trailers in batches of 5 (respect rate limits)
-        const movieChunks = chunkArray(moviesToProcess, 5);
-        const moviesWithTrailers: MovieWithTrailer[] = [];
-
-        console.log('🎬 Processing', movieChunks.length, 'batches...');
-        for (let i = 0; i < movieChunks.length; i++) {
-          const chunk = movieChunks[i];
-          console.log(`📦 Processing batch ${i + 1}/${movieChunks.length}...`);
-
-          const promises = chunk.map(movie =>
-            transformMovieForFeed(movie, genreMap)
-          );
-
-          const results = await Promise.allSettled(promises);
-
-          results.forEach((result, index) => {
-            if (result.status === 'fulfilled') {
-              moviesWithTrailers.push(result.value);
-              console.log(`✅ Movie ${chunk[index].title} transformed`);
-            } else {
-              console.warn(
-                `❌ Failed to transform movie ${chunk[index].id}:`,
-                result.reason
-              );
-            }
-          });
-        }
-
-        console.log('🎉 Final movies with trailers:', moviesWithTrailers.length);
-        return moviesWithTrailers;
+        return newMovies;
       } catch (error) {
         console.error('❌ Failed to fetch movies:', error);
         throw error;
       }
     },
-    [genreMap, state.viewedMovieIds]
+    [state.viewedMovieIds]
   );
 
   /**
-   * Load initial feed data
+   * Load initial feed data without waiting for genres
    */
   const loadInitial = useCallback(async () => {
-    console.log('🔄 loadInitial called, genreMap.size:', genreMap.size);
-    if (genreMap.size === 0) {
-      console.log('⏸️ Waiting for genres to load...');
-      return; // Wait for genres to load
-    }
-
+    console.log('🔄 loadInitial called - starting immediately (no genre blocking)');
     console.log('📡 Starting to load feed...');
     setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -153,7 +123,6 @@ export function useFeedData(): UseFeedDataReturn {
         movies,
         loading: false,
         page: 1,
-        hasMore: movies.length > 0,
         viewedMovieIds: new Set(movies.map(m => m.id)),
       }));
     } catch (error) {
@@ -164,7 +133,7 @@ export function useFeedData(): UseFeedDataReturn {
         error: error instanceof Error ? error.message : 'Failed to load feed',
       }));
     }
-  }, [fetchMovies, genreMap.size]);
+  }, [fetchMovies]);
 
   /**
    * Load more movies (pagination)
@@ -212,7 +181,15 @@ export function useFeedData(): UseFeedDataReturn {
    * Retry after error
    */
   const retry = useCallback(async () => {
-    await loadInitial();
+    // Reset state and retry loading
+    setState(prev => ({ ...prev, error: null, loading: true }));
+    
+    // Try to reload data immediately
+    try {
+      await loadInitial();
+    } catch (error) {
+      console.error('❌ Retry failed:', error);
+    }
   }, [loadInitial]);
 
   /**
@@ -222,14 +199,14 @@ export function useFeedData(): UseFeedDataReturn {
     await loadInitial();
   }, [loadInitial]);
 
-  // Load initial data when genres are ready
+  // Load initial data immediately on mount (no genre blocking)
   useEffect(() => {
-    console.log('🎯 useEffect check - genreMap.size:', genreMap.size, 'movies.length:', state.movies.length);
-    if (genreMap.size > 0 && state.movies.length === 0) {
-      console.log('✨ Conditions met! Calling loadInitial...');
+    console.log('🎯 useEffect check - starting initial load immediately');
+    if (state.movies.length === 0) {
+      console.log('✨ Starting feed load immediately (no genre wait)');
       loadInitial();
     }
-  }, [genreMap.size, state.movies.length, loadInitial]);
+  }, [state.movies.length, loadInitial]);
 
   return {
     ...state,

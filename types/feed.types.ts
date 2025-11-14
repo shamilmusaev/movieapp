@@ -13,6 +13,11 @@ export interface MovieWithTrailer extends Movie {
   trailerId?: string; // YouTube video key for convenience
   genres: Genre[];
   genresDisplay?: string[]; // Pre-mapped genre names for display
+  
+  // Additional pre-computed properties for optimization
+  releaseYear?: string; // Extracted from release_date
+  posterUrl?: string | null; // Pre-computed full URL
+  backdropUrl?: string | null; // Pre-computed full URL
 }
 
 export interface TMDBResponse<T> {

@@ -63,6 +63,8 @@ function VideoCardComponent({
           videoId={movie.trailerId}
           autoplay={isActive}
           isActive={isActive}
+          isMuted={isMuted}
+          onToggleMute={toggleMute}
           className="w-full h-full"
         />
 

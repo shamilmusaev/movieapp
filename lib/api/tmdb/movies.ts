@@ -110,18 +110,10 @@ export async function getMovieById(
 ): Promise<MovieDetails> {
   const { language = 'en-US', append_to_response } = params;
 
-  return tmdbFetchWithRetry(
+  return tmdbGet(
     `/movie/${movieId}`,
-    {
-      method: 'GET',
-      next: CACHE_CONFIG.MOVIE_DETAILS,
-    }
-  ).then(() =>
-    tmdbGet(
-      `/movie/${movieId}`,
-      { language, ...(append_to_response && { append_to_response }) },
-      CACHE_CONFIG.MOVIE_DETAILS
-    )
+    { language, ...(append_to_response && { append_to_response }) },
+    CACHE_CONFIG.MOVIE_DETAILS
   );
 }
 

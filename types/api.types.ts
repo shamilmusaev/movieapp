@@ -3,6 +3,7 @@
  */
 
 import { Movie, MovieDetails, VideosResponse, GenresResponse, WatchProvidersResponse, SimilarMoviesResponse } from './movie.types';
+import { FeedMovie } from './feed.types';
 
 // Generic paginated response wrapper
 export interface PaginatedResponse<T> {
@@ -98,4 +99,13 @@ export interface TmdbConfig {
     profile: string[];
     still: string[];
   };
+}
+
+// Feed API response types
+export interface FeedApiResponse {
+  movies: FeedMovie[];
+  page: number;
+  totalPages: number;
+  hasMore: boolean;
+  error?: string; // Optional error field for error responses
 }

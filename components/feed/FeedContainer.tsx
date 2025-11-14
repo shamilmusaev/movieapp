@@ -49,8 +49,9 @@ function FeedContainerComponent({
         setCurrentIndex(index);
         setActiveVideoId(movies[index]?.id ?? null);
 
-        // Trigger load more when approaching end (3 videos before)
-        if (hasMore && !loading && index >= movies.length - 3) {
+        // Trigger prefetch when 5 videos from end for smoother experience
+        if (hasMore && !loading && index >= movies.length - 5) {
+          console.log('🔄 Prefetching next page (5 videos from end)');
           onLoadMore();
         }
       }

@@ -25,6 +25,16 @@ interface YouTubePlayerProps {
   isActive?: boolean;
 
   /**
+   * Whether the video should be muted
+   */
+  isMuted?: boolean;
+
+  /**
+   * Callback when mute state changes
+   */
+  onToggleMute?: () => void;
+
+  /**
    * Callback when video loads
    */
   onLoad?: () => void;
@@ -48,6 +58,8 @@ function YouTubePlayerComponent({
   videoId,
   autoplay = false,
   isActive = false,
+  isMuted: externalIsMuted = true,
+  onToggleMute,
   onLoad,
   onError,
   className = '',
@@ -118,6 +130,39 @@ function YouTubePlayerComponent({
 
     return () => clearTimeout(timer);
   }, [isActive, isPlaying, videoId, isLoaded]);
+
+  // Handle mute state changes
+  useEffect(() => {
+    if (!iframeRef.current || !isLoaded) return;
+
+    console.log('🔊 YouTube mute control - externalIsMuted:', externalIsMuted, 'videoId:', videoId);
+
+    // Small delay to ensure YouTube API is ready
+    const timer = setTimeout(() => {
+      try {
+        const iframe = iframeRef.current;
+        if (!iframe) return;
+
+        // Send mute or unmute command based on external state
+        const command = externalIsMuted ? 'mute' : 'unMute';
+
+        console.log('📡 Sending mute command to YouTube:', command);
+
+        iframe.contentWindow?.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: command,
+            args: '',
+          }),
+          '*'
+        );
+      } catch (error) {
+        console.warn('Failed to control YouTube mute state:', error);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [externalIsMuted, videoId, isLoaded]);
 
   // Handle iframe load
   const handleLoad = () => {
