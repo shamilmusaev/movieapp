@@ -60,7 +60,7 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
    */
   const startStreaming = useCallback(
     async (page: number = 1) => {
-      console.log('🚀 Starting streaming for page:', page);
+
       
       // Cancel any existing connection
       cancel();
@@ -314,32 +314,11 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
   useEffect(() => {
     cancel();
     
-    // Only reset if this content type hasn't been loaded yet
-    setAllStates(prev => {
-      const currentState = prev[contentType];
-      if (currentState.movies.length === 0) {
-        return {
-          ...prev,
-          [contentType]: {
-            ...currentState,
-            loading: true,
-            error: null,
-          }
-        };
-      }
-      return prev; // Keep existing state if already loaded
-    });
-    
-    setStreamingStatus('connecting');
-    
     // Start streaming for new content type if not loaded yet
     setTimeout(() => {
-      const currentState = allStates[contentType];
-      if (currentState.movies.length === 0) {
-        startStreaming(1);
-      }
+      startStreaming(1);
     }, 100);
-  }, [contentType, allStates, startStreaming]);
+  }, [contentType]);
 
   /**
    * Load initial streaming feed
@@ -355,7 +334,7 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
    * Cancel streaming connection
    */
   const cancel = useCallback(() => {
-    console.log('🛑 Canceling streaming connection');
+
     setStreamingStatus('canceled');
     
     if (eventSourceRef.current) {

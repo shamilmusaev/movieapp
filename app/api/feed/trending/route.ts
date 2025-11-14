@@ -8,6 +8,42 @@ import { getTrendingMovies, getMovieById, getTrendingTVShows, getAnimeMovies, ge
 import { transformMovieForFeedServer } from '@/lib/utils/feed-server';
 import type { FeedMovie, FeedContentType } from '@/types/feed.types';
 
+/**
+ * Check trailer coverage for anime results
+ * Returns object with coverage ratio and items with trailers
+ */
+async function checkAnimeTrailerCoverage(animeResults: any[]): Promise<{coverage: number, itemsWithTrailers: any[]}> {
+  if (animeResults.length === 0) {
+    return { coverage: 0, itemsWithTrailers: [] };
+  }
+
+  // Check trailers for each anime item in parallel
+  const trailerChecks = animeResults.map(async (anime) => {
+    try {
+      const details = await (anime.first_air_date ? getTVShowById : getMovieById)(anime.id, {
+        append_to_response: 'videos'
+      });
+      
+      return {
+        id: anime.id,
+        hasTrailer: !!((details as any).videos?.results?.length > 0)
+      };
+    } catch {
+      return { id: anime.id, hasTrailer: false };
+    }
+  });
+
+  const results = await Promise.allSettled(trailerChecks);
+  const validResults = results
+    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+    .map(r => r.value);
+
+  const itemsWithTrailers = validResults.filter(r => r.hasTrailer);
+  const coverage = itemsWithTrailers.length / validResults.length;
+
+  return { coverage, itemsWithTrailers };
+}
+
 // Enable ISR caching for 30 minutes
 export const revalidate = 1800;
 
@@ -82,6 +118,24 @@ export async function GET(request: NextRequest) {
               }
               
               animeAttempt++;
+            }
+            
+            // Check trailer availability for anime results
+            if (animeResponse.results.length > 0) {
+              const animeWithTrailers = await checkAnimeTrailerCoverage(animeResponse.results);
+              if (animeWithTrailers.coverage < 0.5 && animeAttempt < 4) {
+                // Less than 50% have trailers, try next attempt
+                animeAttempt++;
+                animeResponse = await getAnimeMovies({
+                  page,
+                  attempt: animeAttempt as 1 | 2 | 3 | 4,
+                });
+              } else {
+                // Filter anime to only include items with trailers
+                animeResponse.results = animeResponse.results.filter((anime: any) => 
+                  animeWithTrailers.itemsWithTrailers.some(item => item.id === anime.id)
+                );
+              }
             }
             
             trendingResponse = animeResponse;

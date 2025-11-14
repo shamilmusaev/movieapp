@@ -5,7 +5,7 @@
  * Tab navigation for switching between Movies, TV Shows, and Anime content
  */
 
-import { memo } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import type { FeedContentType } from '@/types/feed.types';
 
 interface FeedTypeSelectorProps {
@@ -41,13 +41,60 @@ function FeedTypeSelectorComponent({
   selectedType,
   onTypeChange,
 }: FeedTypeSelectorProps) {
+  const [focusedIndex, setFocusedIndex] = useState<number>(() => 
+    CONTENT_TYPES.findIndex(({ type }) => type === selectedType)
+  );
+  const navRef = useRef<HTMLElement>(null);
+
+  // Update focused index when selected type changes
+  useEffect(() => {
+    setFocusedIndex(CONTENT_TYPES.findIndex(({ type }) => type === selectedType));
+  }, [selectedType]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    let newIndex = focusedIndex;
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        newIndex = focusedIndex > 0 ? focusedIndex - 1 : CONTENT_TYPES.length - 1;
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        newIndex = focusedIndex < CONTENT_TYPES.length - 1 ? focusedIndex + 1 : 0;
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        onTypeChange(CONTENT_TYPES[focusedIndex].type);
+        return;
+      default:
+        return; // Exit for other keys
+    }
+
+    setFocusedIndex(newIndex);
+  };
+
+  // Focus the button when focused index changes
+  useEffect(() => {
+    if (navRef.current) {
+      const buttons = navRef.current.querySelectorAll('button[role="tab"]') as NodeListOf<HTMLButtonElement>;
+      if (buttons[focusedIndex]) {
+        buttons[focusedIndex].focus();
+      }
+    }
+  }, [focusedIndex]);
+
   return (
     <div className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur-md border-b border-white/10">
       <div className="flex items-center justify-center px-4 py-3">
         <nav 
+          ref={navRef}
           className="flex items-center gap-1 bg-white/5 rounded-lg p-1"
           role="tablist"
           aria-label="Content type"
+          onKeyDown={handleKeyDown}
         >
           {CONTENT_TYPES.map(({ type, label, ariaLabel }) => (
             <button
