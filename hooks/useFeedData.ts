@@ -80,8 +80,11 @@ export function useFeedData(): UseFeedDataReturn {
           return [];
         }
 
-        // Fetch trailers in batches of 5 (respect rate limits)
-        const movieChunks = chunkArray(newMovies, 5);
+        // Limit to 5 movies for initial load to improve performance
+        const moviesToProcess = page === 1 ? newMovies.slice(0, 5) : newMovies;
+
+        // Fetch trailers in batches of 3 (respect rate limits)
+        const movieChunks = chunkArray(moviesToProcess, 3);
         const moviesWithTrailers: MovieWithTrailer[] = [];
 
         for (const chunk of movieChunks) {

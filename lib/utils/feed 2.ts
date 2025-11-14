@@ -3,7 +3,7 @@
  */
 
 import { FeedMovie } from '@/types/feed.types';
-import { Movie, Genre, Video } from '@/types/movie.types';
+import { Movie, Genre } from '@/types/movie.types';
 import { getMovieVideos } from '@/lib/api/tmdb/movies';
 import { buildImageUrl } from '@/lib/api/tmdb/config';
 
@@ -29,18 +29,9 @@ export async function transformMovieForFeed(
 
   feedMovie.genresDisplay = movie.genre_ids.slice(0, 3).map(id => genreMap.get(id) || '');
 
-  // Fetch videos and extract the best trailer with timeout
+  // Fetch videos and extract the best trailer
   try {
-    // Add 5 second timeout to prevent hanging
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout')), 5000)
-    );
-
-    const videosResponse = await Promise.race([
-      getMovieVideos(movie.id),
-      timeoutPromise
-    ]);
-
+    const videosResponse = await getMovieVideos(movie.id);
     const trailerKey = extractBestTrailer(videosResponse.results);
 
     if (trailerKey) {
@@ -51,11 +42,7 @@ export async function transformMovieForFeed(
         feedMovie.trailerId = trailerKey;
       }
     }
-  } catch (error) {
-    // Log timeout or error, but continue without trailer
-    if (error instanceof Error && error.message === 'Timeout') {
-      console.warn(`Timeout loading trailer for movie ${movie.id}`);
-    }
+  } catch {
     feedMovie.trailerId = undefined;
   }
 
@@ -67,7 +54,7 @@ export async function transformMovieForFeed(
  * @param videos - Array of video objects
  * @returns YouTube video key for trailer or undefined
  */
-export function extractBestTrailer(videos: Video[]): string | undefined {
+export function extractBestTrailer(videos: Array<{ site: string; type: string; official: boolean; key: string }>): string | undefined {
   // Priority 1: Official Trailer named "Official Trailer"
   const officialNamed = videos.find(
     v => v.site === 'YouTube' && v.type === 'Trailer' && v.official && v.name.toLowerCase().includes('official trailer')
