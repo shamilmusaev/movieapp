@@ -16,13 +16,14 @@ export default function FeedPage() {
   // Content type state with session persistence
   const [selectedContentType, setSelectedContentType] = useState<FeedContentType>('movie');
   
+  const { movies, loading, error, hasMore, loadMore, retry, streamingStatus, setContentType: setFeedContentType } = useStreamingFeedData(selectedContentType);
+  
   // Initialize content type from session storage
   useEffect(() => {
     const savedType = getContentType();
     setSelectedContentType(savedType);
-  }, []);
-  
-  const { movies, loading, error, hasMore, loadMore, retry, streamingStatus, setContentType: setFeedContentType } = useStreamingFeedData(selectedContentType);
+    setFeedContentType(savedType); // Update hook state to match saved type
+  }, [setFeedContentType]);
   
   // Handle content type change
   const handleContentTypeChange = (type: FeedContentType) => {

@@ -64,6 +64,7 @@ function extractReleaseYear(releaseDate: string): string {
 /**
  * Transform a TMDB MovieDetails object into a FeedMovie with pre-processed data
  * Optimized for server-side processing with all necessary transformations
+ * Handles both movies and TV shows/anime with different field names
  * 
  * @param movieDetails - Complete movie details with videos (append_to_response)
  * @returns FeedMovie object ready for client consumption
@@ -81,15 +82,21 @@ export async function transformMovieForFeedServer(
   const genres: Genre[] = movieDetails.genres || [];
   const genreIds = genres.map(g => g.id);
 
+  // Handle both movies and TV shows with different field names
+  const isTVShow = !!(movieDetails as any).name; // Check if it has TV show fields
+  const title = isTVShow ? (movieDetails as any).name || (movieDetails as any).original_name : movieDetails.title;
+  const originalTitle = isTVShow ? (movieDetails as any).original_name : movieDetails.original_title;
+  const releaseDate = isTVShow ? (movieDetails as any).first_air_date : movieDetails.release_date;
+
   // Build the FeedMovie object with all required properties
   const feedMovie: FeedMovie = {
-    // Core movie properties from MovieDetails
+    // Core properties (normalized for both movies and TV shows)
     id: movieDetails.id,
-    title: movieDetails.title,
+    title: title || movieDetails.title, // Fallback to title for movies
     overview: movieDetails.overview,
     poster_path: movieDetails.poster_path,
     backdrop_path: movieDetails.backdrop_path,
-    release_date: movieDetails.release_date,
+    release_date: releaseDate || movieDetails.release_date, // Fallback to movie release_date
     genre_ids: genreIds, // Already extracted from genres array
     
     // Extended properties for feed functionality
@@ -98,9 +105,9 @@ export async function transformMovieForFeedServer(
     genres,
     genresDisplay: genres.slice(0, 3).map(g => g.name),
     
-    // Additional properties from MovieDetails
+    // Additional properties from MovieDetails (with TV show fallbacks)
     adult: movieDetails.adult || false,
-    original_title: movieDetails.original_title,
+    original_title: originalTitle || movieDetails.original_title,
     original_language: movieDetails.original_language,
     popularity: movieDetails.popularity || 0,
     video: movieDetails.video || false,
@@ -108,7 +115,7 @@ export async function transformMovieForFeedServer(
     vote_count: movieDetails.vote_count || 0,
     
     // Pre-computed display fields for optimization
-    releaseYear: extractReleaseYear(movieDetails.release_date),
+    releaseYear: extractReleaseYear(releaseDate || movieDetails.release_date),
     posterUrl: computeTMDBImageUrl(movieDetails.poster_path, 'w500'),
     backdropUrl: computeTMDBImageUrl(movieDetails.backdrop_path, 'w1280'),
   };

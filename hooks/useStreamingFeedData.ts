@@ -22,13 +22,33 @@ interface UseStreamingFeedDataReturn extends FeedState {
  */
 export function useStreamingFeedData(initialContentType: FeedContentType = 'movie'): UseStreamingFeedDataReturn {
   const [contentType, setContentType] = useState<FeedContentType>(initialContentType);
-  const [state, setState] = useState<FeedState>({
-    movies: [],
-    loading: true,
-    error: null,
-    hasMore: true,
-    page: 1,
-    viewedMovieIds: new Set<number>(),
+  
+  // Independent state for each content type
+  const [allStates, setAllStates] = useState<Record<FeedContentType, FeedState>>({
+    movie: {
+      movies: [],
+      loading: true,
+      error: null,
+      hasMore: true,
+      page: 1,
+      viewedMovieIds: new Set<number>(),
+    },
+    tv: {
+      movies: [],
+      loading: true,
+      error: null,
+      hasMore: true,
+      page: 1,
+      viewedMovieIds: new Set<number>(),
+    },
+    anime: {
+      movies: [],
+      loading: true,
+      error: null,
+      hasMore: true,
+      page: 1,
+      viewedMovieIds: new Set<number>(),
+    },
   });
 
   const [streamingStatus, setStreamingStatus] = useState<string>('');
@@ -46,11 +66,14 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
       cancel();
       
       // Reset state for new stream
-      setState(prev => ({
+      setAllStates(prev => ({
         ...prev,
-        loading: true,
-        error: null,
-        ...(page === 1 && { movies: [], viewedMovieIds: new Set() })
+        [contentType]: {
+          ...prev[contentType],
+          loading: true,
+          error: null,
+          ...(page === 1 && { movies: [], viewedMovieIds: new Set() })
+        }
       }));
       
       setStreamingStatus('connecting');
@@ -65,10 +88,13 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
           console.warn('⏰ Connection timeout');
           setStreamingStatus('timeout');
           eventSource.close();
-          setState(prev => ({
+          setAllStates(prev => ({
             ...prev,
-            loading: false,
-            error: 'Connection timeout'
+            [contentType]: {
+              ...prev[contentType],
+              loading: false,
+              error: 'Connection timeout'
+            }
           }));
         }
       }, 30000); // 30 second timeout
@@ -84,10 +110,13 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
       eventSource.onerror = (error) => {
         console.error('❌ Streaming error:', error);
         setStreamingStatus('error');
-        setState(prev => ({
+        setAllStates(prev => ({
           ...prev,
-          loading: false,
-          error: 'Streaming connection failed'
+          [contentType]: {
+            ...prev[contentType],
+            loading: false,
+            error: 'Streaming connection failed'
+          }
         }));
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
@@ -121,15 +150,17 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
           
           console.log(`🎬 Received ${type} movie ${index + 1}/${total}:`, movie.title);
           
-          setState(prev => {
+          setAllStates(prev => {
+            const currentState = prev[contentType];
+            
             // Check if movie already exists (avoid duplicates)
-            if (prev.movies.some(m => m.id === movie.id)) {
+            if (currentState.movies.some(m => m.id === movie.id)) {
               return prev;
             }
 
             // Add movie to the list
-            const newMovies = [...prev.movies, movie];
-            const viewedIds = new Set([...prev.viewedMovieIds, movie.id]);
+            const newMovies = [...currentState.movies, movie];
+            const viewedIds = new Set([...currentState.viewedMovieIds, movie.id]);
 
             // Update streaming status for progress
             if (type === 'priority' && index === 0) {
@@ -140,9 +171,12 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
 
             return {
               ...prev,
-              movies: newMovies,
-              viewedMovieIds: viewedIds,
-              loading: false,
+              [contentType]: {
+                ...currentState,
+                movies: newMovies,
+                viewedMovieIds: viewedIds,
+                loading: false,
+              },
             };
           });
         } catch (error) {
@@ -190,28 +224,33 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
 
           setStreamingStatus('complete');
           
-          setState(prev => {
+          setAllStates(prev => {
+            const currentState = prev[contentType];
+            
             // Update final movie list with all processed movies
             const uniqueMovies = data.movies.filter(
-              (movie: MovieWithTrailer) => !prev.movies.some(m => m.id === movie.id)
+              (movie: MovieWithTrailer) => !currentState.movies.some(m => m.id === movie.id)
             );
 
             const finalMovies = page === 1 
               ? uniqueMovies 
-              : [...prev.movies, ...uniqueMovies];
+              : [...currentState.movies, ...uniqueMovies];
 
             const finalViewedIds = new Set([
-              ...prev.viewedMovieIds,
+              ...currentState.viewedMovieIds,
               ...uniqueMovies.map((m: MovieWithTrailer) => m.id)
             ]);
 
             return {
               ...prev,
-              movies: finalMovies,
-              loading: false,
-              page,
-              hasMore: data.hasMore,
-              viewedMovieIds: finalViewedIds,
+              [contentType]: {
+                ...currentState,
+                movies: finalMovies,
+                loading: false,
+                page,
+                hasMore: data.hasMore,
+                viewedMovieIds: finalViewedIds,
+              },
             };
           });
 
@@ -221,10 +260,13 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
           }
         } catch (error) {
           console.error('❌ Error parsing complete event:', error);
-          setState(prev => ({
+          setAllStates(prev => ({
             ...prev,
-            loading: false,
-            error: 'Failed to process streaming response'
+            [contentType]: {
+              ...prev[contentType],
+              loading: false,
+              error: 'Failed to process streaming response'
+            }
           }));
         }
       });
@@ -239,17 +281,23 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
           
           console.error('❌ Stream error:', data || event);
           setStreamingStatus('error');
-          setState(prev => ({
+          setAllStates(prev => ({
             ...prev,
-            loading: false,
-            error: data?.error || 'Streaming connection failed'
+            [contentType]: {
+              ...prev[contentType],
+              loading: false,
+              error: data?.error || 'Streaming connection failed'
+            }
           }));
         } catch (parseError) {
           console.error('❌ Error parsing error event:', parseError);
-          setState(prev => ({
+          setAllStates(prev => ({
             ...prev,
-            loading: false,
-            error: 'Streaming connection failed'
+            [contentType]: {
+              ...prev[contentType],
+              loading: false,
+              error: 'Streaming connection failed'
+            }
           }));
         }
         eventSource.close();
@@ -259,36 +307,49 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
       });
 
     },
-    []
+    [contentType]
   );
 
   // Reset and reload when content type changes
   useEffect(() => {
     cancel();
-    setState({
-      movies: [],
-      loading: true,
-      error: null,
-      hasMore: true,
-      page: 1,
-      viewedMovieIds: new Set<number>(),
+    
+    // Only reset if this content type hasn't been loaded yet
+    setAllStates(prev => {
+      const currentState = prev[contentType];
+      if (currentState.movies.length === 0) {
+        return {
+          ...prev,
+          [contentType]: {
+            ...currentState,
+            loading: true,
+            error: null,
+          }
+        };
+      }
+      return prev; // Keep existing state if already loaded
     });
+    
     setStreamingStatus('connecting');
     
-    // Start streaming for new content type
+    // Start streaming for new content type if not loaded yet
     setTimeout(() => {
-      startStreaming(1);
+      const currentState = allStates[contentType];
+      if (currentState.movies.length === 0) {
+        startStreaming(1);
+      }
     }, 100);
-  }, [contentType]);
+  }, [contentType, allStates, startStreaming]);
 
   /**
    * Load initial streaming feed
    */
   useEffect(() => {
-    if (state.movies.length === 0) {
+    const currentState = allStates[contentType];
+    if (currentState.movies.length === 0) {
       startStreaming(1);
     }
-  }, [state.movies.length, startStreaming]);
+  }, [allStates, contentType, startStreaming]);
 
   /**
    * Cancel streaming connection
@@ -314,23 +375,25 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
   const retry = useCallback(async () => {
     console.log('🔄 Retrying streaming connection');
     cancel();
+    const currentState = allStates[contentType];
     setTimeout(() => {
-      startStreaming(state.page);
+      startStreaming(currentState.page);
     }, 1000); // Small delay before retry
-  }, [state.page, startStreaming, cancel]);
+  }, [allStates, contentType, startStreaming, cancel]);
 
   /**
    * Load more movies (pagination)
    */
   const loadMore = useCallback(async () => {
-    if (state.loading || !state.hasMore) return;
+    const currentState = allStates[contentType];
+    if (currentState.loading || !currentState.hasMore) return;
     
-    console.log('📄 Loading more movies, current page:', state.page);
-    await startStreaming(state.page + 1);
-  }, [state.loading, state.hasMore, state.page, startStreaming]);
+    console.log('📄 Loading more movies, current page:', currentState.page);
+    await startStreaming(currentState.page + 1);
+  }, [allStates, contentType, startStreaming]);
 
   return {
-    ...state,
+    ...allStates[contentType],
     streamingStatus,
     loadMore,
     retry,
