@@ -2,43 +2,51 @@
 
 /**
  * Feed page - Main vertical video feed
- * Uses streaming for instant content loading with content type tabs
+ * Uses SWR for data fetching with React 19 transitions for smooth UX
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { FeedContainer } from '@/components/feed/FeedContainer';
 import { FeedTypeSelector } from '@/components/feed/FeedTypeSelector';
-import { useStreamingFeedData } from '@/hooks/useStreamingFeedData';
+import { useFeedData } from '@/hooks/useFeedData';
 import { getContentType, setContentType } from '@/lib/utils/session-storage';
 import type { MovieWithTrailer, FeedContentType } from '@/types/feed.types';
 
 export default function FeedPage() {
   // Content type state with session persistence
   const [selectedContentType, setSelectedContentType] = useState<FeedContentType>('movie');
-  
-  const { movies, loading, error, hasMore, loadMore, retry, streamingStatus, setContentType: setFeedContentType } = useStreamingFeedData(selectedContentType);
-  
+
+  // React 19 useTransition for smooth tab switching
+  const [isPending, startTransition] = useTransition();
+
+  // SWR-based data fetching
+  const { movies, loading, error, hasMore, loadMore, retry, isValidating } = useFeedData({
+    contentType: selectedContentType,
+  });
+
   // Initialize content type from session storage
   useEffect(() => {
     const savedType = getContentType();
-    setSelectedContentType(savedType);
-    setFeedContentType(savedType); // Update hook state to match saved type
-  }, [setFeedContentType]);
-  
-  // Handle content type change
+    if (savedType !== selectedContentType) {
+      setSelectedContentType(savedType);
+    }
+  }, []);
+
+  // Handle content type change with transition
   const handleContentTypeChange = (type: FeedContentType) => {
-    setSelectedContentType(type);
-    setContentType(type); // Save to session storage
-    setFeedContentType(type); // Update hook state
+    startTransition(() => {
+      setSelectedContentType(type);
+      setContentType(type); // Save to session storage
+    });
   };
 
   /**
    * Handle movie card click
+   * Wrapped in useCallback for stable reference to prevent FeedContainer re-renders
    */
-  const handleMovieClick = (movie: MovieWithTrailer) => {
+  const handleMovieClick = useCallback((movie: MovieWithTrailer) => {
     // TODO: Navigate to movie details page in future
-    console.log('Movie clicked:', movie.title);
-  };
+  }, []);
 
   // Error state
   if (error && movies.length === 0) {
@@ -48,7 +56,7 @@ export default function FeedPage() {
           <h2 className="text-white text-2xl font-bold mb-4">
             Oops! Something went wrong
           </h2>
-          <p className="text-gray-400 mb-6">{error}</p>
+          <p className="text-gray-400 mb-6">{error.message || 'Failed to load feed'}</p>
           <button
             onClick={retry}
             className="px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
@@ -89,45 +97,22 @@ export default function FeedPage() {
     );
   }
 
-  // Streaming status indicator
-  const StreamingIndicator = () => {
-    if (!streamingStatus) return null;
-    
-    const getStatusText = () => {
-      switch (streamingStatus) {
-        case 'connecting': return 'Connecting...';
-        case 'connected': return 'Fetching...';
-        case 'fetching_trending': return 'Getting trending movies...';
-        case 'processing_priority': return 'Loading priority movies...';
-        case 'showing_priority': return 'Priority movies ready!';
-        case (streamingStatus && streamingStatus.startsWith('batch_')): return `Loading batch ${streamingStatus.split('_')[1]}...`;
-        case 'complete': return 'Streaming complete!';
-        case 'timeout': return 'Connection timeout';
-        case 'error': return 'Streaming error';
-        case 'canceled': return 'Connection canceled';
-        default: return streamingStatus;
-      }
-    };
-
-    return (
-      <div className="fixed top-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg z-50 backdrop-blur-sm">
-        <div className="text-xs uppercase tracking-wide opacity-75 mb-1">Stream Status</div>
-        <div className="text-sm font-medium">{getStatusText()}</div>
-      </div>
-    );
-  };
-
   // Main feed view
   return (
     <main className="w-full h-screen overflow-hidden">
-      <StreamingIndicator />
-      
+      {/* Loading indicator during transition */}
+      {(isPending || isValidating) && movies.length > 0 && (
+        <div className="fixed top-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg z-50 backdrop-blur-sm">
+          <div className="text-sm font-medium">Updating...</div>
+        </div>
+      )}
+
       {/* Content type selector */}
       <FeedTypeSelector
         selectedType={selectedContentType}
         onTypeChange={handleContentTypeChange}
       />
-      
+
       <FeedContainer
         movies={movies}
         loading={loading}

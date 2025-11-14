@@ -4,7 +4,7 @@
  * Feed Container - main wrapper for vertical video feed
  */
 
-import { useState, useCallback, useEffect, memo } from 'react';
+import { useState, useCallback, useEffect, memo, useMemo } from 'react';
 import { VideoCard } from './VideoCard';
 import { FeedControls } from './FeedControls';
 import { useActiveVideoIndex } from '@/hooks/useActiveVideoIndex';
@@ -154,8 +154,9 @@ function FeedContainerComponent({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goNext, goPrevious]);
 
-  const canGoPrevious = activeIndex > 0;
-  const canGoNext = activeIndex < movies.length - 1;
+  // Memoize computed navigation states
+  const canGoPrevious = useMemo(() => activeIndex > 0, [activeIndex]);
+  const canGoNext = useMemo(() => activeIndex < movies.length - 1, [activeIndex, movies.length]);
 
   return (
     <div className="relative w-full h-[calc(100vh-60px)] overflow-hidden bg-black">

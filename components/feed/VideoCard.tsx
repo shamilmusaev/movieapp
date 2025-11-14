@@ -5,7 +5,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { YouTubePlayer } from '@/components/video/YouTubePlayer';
+import { VideoPlayer } from '@/components/video/VideoPlayer';
 import { VideoOverlay } from './VideoOverlay';
 import { useMutePreference } from '@/hooks/useMutePreference';
 import { computeTMDBImageUrl } from '@/lib/utils/feed';
@@ -59,6 +59,7 @@ function VideoCardComponent({
   const shouldPrioritize = index < 3;
 
   const showVideo = Boolean(movie.trailerId && shouldRenderPlayer);
+  const videoUrl = movie.trailerId ? `https://www.youtube.com/watch?v=${movie.trailerId}` : '';
 
   return (
     <div
@@ -66,9 +67,10 @@ function VideoCardComponent({
       className="relative w-full h-screen flex-shrink-0 snap-start bg-black"
     >
       {showVideo ? (
-        <YouTubePlayer
-          videoId={movie.trailerId!}
+        <VideoPlayer
+          url={videoUrl}
           isActive={isActive}
+          autoplay={true}
           isMuted={isMuted}
           className="w-full h-full"
         />
@@ -131,4 +133,23 @@ function VideoCardComponent({
   );
 }
 
-export const VideoCard = memo(VideoCardComponent);
+/**
+ * Custom memo comparator for VideoCard
+ * Only re-render if meaningful props changed (movie ID, active state, render flag)
+ */
+function arePropsEqual(
+  prevProps: Readonly<VideoCardProps>,
+  nextProps: Readonly<VideoCardProps>
+): boolean {
+  return (
+    prevProps.movie.id === nextProps.movie.id &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.shouldRenderPlayer === nextProps.shouldRenderPlayer &&
+    prevProps.index === nextProps.index &&
+    prevProps.onMovieClick === nextProps.onMovieClick &&
+    prevProps.registerCard === nextProps.registerCard &&
+    prevProps.unregisterCard === nextProps.unregisterCard
+  );
+}
+
+export const VideoCard = memo(VideoCardComponent, arePropsEqual);

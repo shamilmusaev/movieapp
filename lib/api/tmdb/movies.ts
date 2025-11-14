@@ -270,7 +270,6 @@ export async function getAnimeMovies(
 
   // Stage 1: Primary attempt with Japanese origin and animation genre
   if (attempt === 1) {
-    console.log('🎌 Attempt 1: Fetching anime with JP origin and Animation genre');
     return tmdbGet(
       '/discover/movie',
       {
@@ -287,7 +286,6 @@ export async function getAnimeMovies(
 
   // Stage 2: Remove original language constraint
   if (attempt === 2) {
-    console.log('🎌 Attempt 2: Fetching anime with Animation genre (no origin country)');
     return tmdbGet(
       '/discover/movie',
       {
@@ -303,7 +301,6 @@ export async function getAnimeMovies(
 
   // Stage 3: Use anime keyword
   if (attempt === 3) {
-    console.log('🎌 Attempt 3: Fetching anime with anime keyword');
     return tmdbGet(
       '/discover/movie',
       {
@@ -319,7 +316,6 @@ export async function getAnimeMovies(
 
   // Stage 4: Fallback to trending TV with animation genre
   if (attempt === 4) {
-    console.log('🎌 Attempt 4: Fallback to trending TV shows with Animation genre');
     return tmdbGet(
       '/discover/tv',
       {

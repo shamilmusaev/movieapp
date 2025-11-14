@@ -111,7 +111,6 @@ function VideoOverlayComponent({
         <button
           onClick={() => {
             // TODO: Implement share functionality
-            console.log('Share:', movie.title);
           }}
           className="flex flex-col items-center gap-1 group"
           aria-label="Share"
