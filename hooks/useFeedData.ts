@@ -38,17 +38,20 @@ export function useFeedData(): UseFeedDataReturn {
     let cancelled = false;
 
     async function loadGenres() {
+      console.log('🎭 Loading genres...');
       try {
         const genres = await getMovieGenres();
+        console.log('✅ Genres loaded:', genres.length);
         if (!cancelled) {
           const map = new Map<number, string>();
           genres.forEach((genre: Genre) => {
             map.set(genre.id, genre.name);
           });
           setGenreMap(map);
+          console.log('✅ Genre map created with', map.size, 'entries');
         }
       } catch (error) {
-        console.error('Failed to load genres:', error);
+        console.error('❌ Failed to load genres:', error);
       }
     }
 
@@ -64,30 +67,40 @@ export function useFeedData(): UseFeedDataReturn {
    */
   const fetchMovies = useCallback(
     async (page: number): Promise<MovieWithTrailer[]> => {
+      console.log('📄 fetchMovies called for page:', page);
       try {
         // Fetch trending movies
+        console.log('🔎 Calling getTrendingMovies...');
         const response = await getTrendingMovies({
           time_window: 'day',
           page,
         });
+        console.log('✅ Got trending movies:', response.results.length);
 
         // Filter out already viewed movies
         const newMovies = response.results.filter(
           (movie: Movie) => !state.viewedMovieIds.has(movie.id)
         );
+        console.log('🔢 New movies after filter:', newMovies.length);
 
         if (newMovies.length === 0) {
+          console.log('⚠️ No new movies to process');
           return [];
         }
 
         // Limit to 5 movies for initial load to improve performance
         const moviesToProcess = page === 1 ? newMovies.slice(0, 5) : newMovies;
+        console.log('📦 Movies to process:', moviesToProcess.length);
 
         // Fetch trailers in batches of 3 (respect rate limits)
         const movieChunks = chunkArray(moviesToProcess, 3);
         const moviesWithTrailers: MovieWithTrailer[] = [];
 
-        for (const chunk of movieChunks) {
+        console.log('🎬 Processing', movieChunks.length, 'batches...');
+        for (let i = 0; i < movieChunks.length; i++) {
+          const chunk = movieChunks[i];
+          console.log(`📦 Processing batch ${i + 1}/${movieChunks.length}...`);
+
           const promises = chunk.map(movie =>
             transformMovieForFeed(movie, genreMap)
           );
@@ -97,18 +110,20 @@ export function useFeedData(): UseFeedDataReturn {
           results.forEach((result, index) => {
             if (result.status === 'fulfilled') {
               moviesWithTrailers.push(result.value);
+              console.log(`✅ Movie ${chunk[index].title} transformed`);
             } else {
               console.warn(
-                `Failed to transform movie ${chunk[index].id}:`,
+                `❌ Failed to transform movie ${chunk[index].id}:`,
                 result.reason
               );
             }
           });
         }
 
+        console.log('🎉 Final movies with trailers:', moviesWithTrailers.length);
         return moviesWithTrailers;
       } catch (error) {
-        console.error('Failed to fetch movies:', error);
+        console.error('❌ Failed to fetch movies:', error);
         throw error;
       }
     },
@@ -119,12 +134,19 @@ export function useFeedData(): UseFeedDataReturn {
    * Load initial feed data
    */
   const loadInitial = useCallback(async () => {
-    if (genreMap.size === 0) return; // Wait for genres to load
+    console.log('🔄 loadInitial called, genreMap.size:', genreMap.size);
+    if (genreMap.size === 0) {
+      console.log('⏸️ Waiting for genres to load...');
+      return; // Wait for genres to load
+    }
 
+    console.log('📡 Starting to load feed...');
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
+      console.log('🎬 Fetching movies...');
       const movies = await fetchMovies(1);
+      console.log('✅ Movies loaded:', movies.length);
 
       setState(prev => ({
         ...prev,
@@ -135,6 +157,7 @@ export function useFeedData(): UseFeedDataReturn {
         viewedMovieIds: new Set(movies.map(m => m.id)),
       }));
     } catch (error) {
+      console.error('❌ Error loading feed:', error);
       setState(prev => ({
         ...prev,
         loading: false,
