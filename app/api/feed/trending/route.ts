@@ -4,9 +4,9 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getTrendingMovies, getMovieById } from '@/lib/api/tmdb/movies';
+import { getTrendingMovies, getMovieById, getTrendingTVShows, getAnimeMovies, getTVShowById } from '@/lib/api/tmdb/movies';
 import { transformMovieForFeedServer } from '@/lib/utils/feed-server';
-import type { FeedMovie } from '@/types/feed.types';
+import type { FeedMovie, FeedContentType } from '@/types/feed.types';
 
 // Enable ISR caching for 30 minutes
 export const revalidate = 1800;
@@ -17,12 +17,15 @@ export const revalidate = 1800;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Parse page parameter from query string
+    // Parse query parameters
     const { searchParams } = new URL(request.url);
     const pageParam = searchParams.get('page');
+    const mediaTypeParam = searchParams.get('media_type');
+    
     const page = pageParam ? parseInt(pageParam, 10) : 1;
+    const mediaType: FeedContentType = (mediaTypeParam as FeedContentType) || 'movie';
 
-    // Validate page parameter
+    // Validate parameters
     if (isNaN(page) || page < 1) {
       return Response.json(
         { error: 'Invalid page parameter' },
@@ -30,7 +33,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`🎬 Starting streaming feed for page ${page}...`);
+    if (!['movie', 'tv', 'anime'].includes(mediaType)) {
+      return Response.json(
+        { error: 'Invalid media_type parameter. Must be movie, tv, or anime' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🎬 Starting streaming feed for ${mediaType} page ${page}...`);
 
     // Create a readable stream for Server-Sent Events
     const encoder = new TextEncoder();
@@ -42,11 +52,40 @@ export async function GET(request: NextRequest) {
           controller.enqueue(encoder.encode('event: start\n'));
           controller.enqueue(encoder.encode('data: {"status":"fetching_trending"}\n\n'));
 
-          // 2. Fetch trending movies list
-          const trendingResponse = await getTrendingMovies({
-            time_window: 'day',
-            page,
-          });
+          // 2. Fetch content based on media type
+          let trendingResponse: any;
+          
+          if (mediaType === 'movie') {
+            trendingResponse = await getTrendingMovies({
+              time_window: 'day',
+              page,
+            });
+          } else if (mediaType === 'tv') {
+            trendingResponse = await getTrendingTVShows({
+              time_window: 'day',
+              page,
+            });
+          } else if (mediaType === 'anime') {
+            // Try multi-stage fallback for anime
+            let animeAttempt = 1;
+            let animeResponse: any;
+            
+            while (animeAttempt <= 4) {
+              animeResponse = await getAnimeMovies({
+                page,
+                attempt: animeAttempt as 1 | 2 | 3 | 4,
+              });
+              
+              // If we got sufficient results, use them
+              if (animeResponse.results.length >= 10) {
+                break;
+              }
+              
+              animeAttempt++;
+            }
+            
+            trendingResponse = animeResponse;
+          }
 
           controller.enqueue(encoder.encode('data: {"status":"trending_fetched","total":' + trendingResponse.results.length + '}\n\n'));
 
@@ -67,12 +106,23 @@ export async function GET(request: NextRequest) {
           
           controller.enqueue(encoder.encode('data: {"status":"processing_priority","count":' + priorityMovies.length + '}\n\n'));
 
-          // Process priority movies in parallel
-          const priorityPromises = priorityMovies.map(async (movie, index) => {
+          // Process priority movies/TV shows in parallel
+          const priorityPromises = priorityMovies.map(async (movie: any, index: number) => {
             try {
-              const movieDetails = await getMovieById(movie.id, {
-                append_to_response: 'videos',
-              });
+              let movieDetails;
+              
+              // Fetch details based on media type
+              if (mediaType === 'tv' || (mediaType === 'anime' && movie.first_air_date)) {
+                // TV show
+                movieDetails = await getTVShowById(movie.id, {
+                  append_to_response: 'videos',
+                });
+              } else {
+                // Movie (including anime movies)
+                movieDetails = await getMovieById(movie.id, {
+                  append_to_response: 'videos',
+                });
+              }
               
               const feedMovie = await transformMovieForFeedServer(movieDetails);
               
@@ -87,7 +137,7 @@ export async function GET(request: NextRequest) {
               
               return feedMovie;
             } catch (error) {
-              console.warn(`❌ Failed to process movie ${movie.id}:`, error);
+              console.warn(`❌ Failed to process ${mediaType} ${movie.id}:`, error);
               return null;
             }
           });
@@ -111,11 +161,22 @@ export async function GET(request: NextRequest) {
               const batch = remainingMovies.slice(i, i + batchSize);
               const batchStartIndex = priorityMovies.length + i;
               
-              const batchPromises = batch.map(async (movie, batchIndex) => {
+              const batchPromises = batch.map(async (movie: any, batchIndex: number) => {
                 try {
-                  const movieDetails = await getMovieById(movie.id, {
-                    append_to_response: 'videos',
-                  });
+                  let movieDetails;
+                  
+                  // Fetch details based on media type
+                  if (mediaType === 'tv' || (mediaType === 'anime' && movie.first_air_date)) {
+                    // TV show
+                    movieDetails = await getTVShowById(movie.id, {
+                      append_to_response: 'videos',
+                    });
+                  } else {
+                    // Movie (including anime movies)
+                    movieDetails = await getMovieById(movie.id, {
+                      append_to_response: 'videos',
+                    });
+                  }
                   
                   const feedMovie = await transformMovieForFeedServer(movieDetails);
                   
@@ -131,7 +192,7 @@ export async function GET(request: NextRequest) {
                   
                   return feedMovie;
                 } catch (error) {
-                  console.warn(`❌ Failed to process movie ${movie.id}:`, error);
+                  console.warn(`❌ Failed to process ${mediaType} ${movie.id}:`, error);
                   return null;
                 }
               });

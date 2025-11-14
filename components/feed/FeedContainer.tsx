@@ -116,11 +116,11 @@ function FeedContainerComponent({
   const canGoNext = currentIndex < movies.length - 1;
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <div className="relative w-full h-[calc(100vh-60px)] overflow-hidden bg-black">
       {/* Vertical scroll container with snap points */}
       <div
         ref={containerRef}
-        className="w-full h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth"
+        className="w-full h-[calc(100vh-60px)] overflow-y-scroll snap-y snap-mandatory scroll-smooth"
         style={{
           scrollbarWidth: 'none', // Firefox
           msOverflowStyle: 'none', // IE/Edge

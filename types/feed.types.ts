@@ -49,6 +49,8 @@ export interface VideoPlayerState {
   hasError: boolean;
 }
 
+export type FeedContentType = 'movie' | 'tv' | 'anime';
+
 export interface FeedState {
   movies: MovieWithTrailer[];
   loading: boolean;
@@ -57,6 +59,8 @@ export interface FeedState {
   page: number;
   viewedMovieIds: Set<number>;
 }
+
+export type FeedStateMap = Record<FeedContentType, FeedState>;
 
 export type VideoSize = 'small' | 'medium' | 'large';
 

@@ -6,20 +6,22 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MovieWithTrailer, FeedState } from '@/types/feed.types';
+import type { MovieWithTrailer, FeedState, FeedContentType } from '@/types/feed.types';
 
 interface UseStreamingFeedDataReturn extends FeedState {
   retry: () => Promise<void>;
   cancel: () => void;
   loadMore: () => void;
   streamingStatus?: string;
+  setContentType: (type: FeedContentType) => void;
 }
 
 /**
  * Custom hook for managing streaming feed data with progressive loading
  * Uses Server-Sent Events to show content immediately
  */
-export function useStreamingFeedData(): UseStreamingFeedDataReturn {
+export function useStreamingFeedData(initialContentType: FeedContentType = 'movie'): UseStreamingFeedDataReturn {
+  const [contentType, setContentType] = useState<FeedContentType>(initialContentType);
   const [state, setState] = useState<FeedState>({
     movies: [],
     loading: true,
@@ -53,8 +55,8 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
       
       setStreamingStatus('connecting');
 
-      // Create EventSource for streaming
-      const eventSource = new EventSource(`/api/feed/trending?page=${page}`);
+      // Create EventSource for streaming with content type
+      const eventSource = new EventSource(`/api/feed/trending?page=${page}&media_type=${contentType}`);
       eventSourceRef.current = eventSource;
 
       // Set timeout for connection
@@ -260,6 +262,25 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
     []
   );
 
+  // Reset and reload when content type changes
+  useEffect(() => {
+    cancel();
+    setState({
+      movies: [],
+      loading: true,
+      error: null,
+      hasMore: true,
+      page: 1,
+      viewedMovieIds: new Set<number>(),
+    });
+    setStreamingStatus('connecting');
+    
+    // Start streaming for new content type
+    setTimeout(() => {
+      startStreaming(1);
+    }, 100);
+  }, [contentType]);
+
   /**
    * Load initial streaming feed
    */
@@ -314,5 +335,6 @@ export function useStreamingFeedData(): UseStreamingFeedDataReturn {
     loadMore,
     retry,
     cancel,
+    setContentType,
   };
 }

@@ -42,7 +42,7 @@ function VideoOverlayComponent({
       <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black via-black/70 to-transparent" />
 
       {/* Right side action buttons */}
-      <div className="absolute right-4 bottom-32 flex flex-col gap-6 pointer-events-auto z-10">
+      <div className="absolute right-4 bottom-[max(8rem,calc(8rem+env(safe-area-inset-bottom)))] flex flex-col gap-6 pointer-events-auto z-10">
         {/* Like Button */}
         <button
           onClick={() => setIsLiked(!isLiked)}
@@ -168,7 +168,7 @@ function VideoOverlayComponent({
       </div>
 
       {/* Bottom content */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 pointer-events-auto">
+      <div className="absolute bottom-0 left-0 right-0 p-6 pb-[max(2rem,calc(2rem+env(safe-area-inset-bottom)))] pointer-events-auto">
         <div className="max-w-xl">
           {/* Movie Title */}
           <h1

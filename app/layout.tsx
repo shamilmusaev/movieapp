@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   description: "Discover and swipe through the latest movies and trailers. Your gateway to cinematic entertainment.",
   keywords: ["movies", "trailers", "cinema", "film", "discovery", "TMDB"],
   authors: [{ name: "CineSwipe Team" }],
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
+  },
   openGraph: {
     title: "CineSwipe - Discover Movies",
     description: "Discover and swipe through the latest movies and trailers",

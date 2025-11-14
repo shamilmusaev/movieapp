@@ -2,15 +2,34 @@
 
 /**
  * Feed page - Main vertical video feed
- * Uses streaming for instant content loading
+ * Uses streaming for instant content loading with content type tabs
  */
 
+import { useState, useEffect } from 'react';
 import { FeedContainer } from '@/components/feed/FeedContainer';
+import { FeedTypeSelector } from '@/components/feed/FeedTypeSelector';
 import { useStreamingFeedData } from '@/hooks/useStreamingFeedData';
-import type { MovieWithTrailer } from '@/types/feed.types';
+import { getContentType, setContentType } from '@/lib/utils/session-storage';
+import type { MovieWithTrailer, FeedContentType } from '@/types/feed.types';
 
 export default function FeedPage() {
-  const { movies, loading, error, hasMore, loadMore, retry, streamingStatus } = useStreamingFeedData();
+  // Content type state with session persistence
+  const [selectedContentType, setSelectedContentType] = useState<FeedContentType>('movie');
+  
+  // Initialize content type from session storage
+  useEffect(() => {
+    const savedType = getContentType();
+    setSelectedContentType(savedType);
+  }, []);
+  
+  const { movies, loading, error, hasMore, loadMore, retry, streamingStatus, setContentType: setFeedContentType } = useStreamingFeedData(selectedContentType);
+  
+  // Handle content type change
+  const handleContentTypeChange = (type: FeedContentType) => {
+    setSelectedContentType(type);
+    setContentType(type); // Save to session storage
+    setFeedContentType(type); // Update hook state
+  };
 
   /**
    * Handle movie card click
@@ -101,6 +120,13 @@ export default function FeedPage() {
   return (
     <main className="w-full h-screen overflow-hidden">
       <StreamingIndicator />
+      
+      {/* Content type selector */}
+      <FeedTypeSelector
+        selectedType={selectedContentType}
+        onTypeChange={handleContentTypeChange}
+      />
+      
       <FeedContainer
         movies={movies}
         loading={loading}

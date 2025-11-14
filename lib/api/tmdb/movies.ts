@@ -224,3 +224,159 @@ export async function searchMovies(
     { revalidate: 1800 } // 30 minutes cache for search results
   );
 }
+
+/**
+ * Get trending TV shows
+ * @param params - Optional parameters including time_window, language, and page
+ * @returns Paginated list of trending TV shows
+ */
+export async function getTrendingTVShows(
+  params: {
+    time_window?: 'day' | 'week';
+    language?: string;
+    page?: number;
+  } = {}
+): Promise<TrendingMoviesResponse> {
+  const {
+    time_window = 'day',
+    language = 'en-US',
+    page = 1
+  } = params;
+
+  return tmdbGet(
+    `/trending/tv/${time_window}`,
+    { language, page: page.toString() },
+    CACHE_CONFIG.MOVIE_LISTS
+  );
+}
+
+/**
+ * Get anime movies with multi-stage fallback strategy
+ * @param params - Parameters for fetching anime
+ * @returns Paginated list of anime movies
+ */
+export async function getAnimeMovies(
+  params: {
+    page?: number;
+    language?: string;
+    attempt?: number; // 1-4 for different fallback strategies
+  } = {}
+): Promise<TrendingMoviesResponse> {
+  const {
+    page = 1,
+    language = 'en-US',
+    attempt = 1
+  } = params;
+
+  // Stage 1: Primary attempt with Japanese origin and animation genre
+  if (attempt === 1) {
+    console.log('🎌 Attempt 1: Fetching anime with JP origin and Animation genre');
+    return tmdbGet(
+      '/discover/movie',
+      {
+        language,
+        page: page.toString(),
+        with_origin_country: 'JP',
+        with_genres: '16', // Animation genre ID
+        sort_by: 'popularity.desc',
+        'vote_count.gte': '50'
+      },
+      CACHE_CONFIG.MOVIE_LISTS
+    );
+  }
+
+  // Stage 2: Remove original language constraint
+  if (attempt === 2) {
+    console.log('🎌 Attempt 2: Fetching anime with Animation genre (no origin country)');
+    return tmdbGet(
+      '/discover/movie',
+      {
+        language,
+        page: page.toString(),
+        with_genres: '16',
+        sort_by: 'popularity.desc',
+        'vote_count.gte': '50'
+      },
+      CACHE_CONFIG.MOVIE_LISTS
+    );
+  }
+
+  // Stage 3: Use anime keyword
+  if (attempt === 3) {
+    console.log('🎌 Attempt 3: Fetching anime with anime keyword');
+    return tmdbGet(
+      '/discover/movie',
+      {
+        language,
+        page: page.toString(),
+        with_keywords: '210024', // Anime keyword ID
+        with_genres: '16',
+        sort_by: 'popularity.desc'
+      },
+      CACHE_CONFIG.MOVIE_LISTS
+    );
+  }
+
+  // Stage 4: Fallback to trending TV with animation genre
+  if (attempt === 4) {
+    console.log('🎌 Attempt 4: Fallback to trending TV shows with Animation genre');
+    return tmdbGet(
+      '/discover/tv',
+      {
+        language,
+        page: page.toString(),
+        with_genres: '16',
+        sort_by: 'popularity.desc'
+      },
+      CACHE_CONFIG.MOVIE_LISTS
+    );
+  }
+
+  // Default to stage 1
+  return getAnimeMovies({ page, language, attempt: 1 });
+}
+
+/**
+ * Get TV show details by ID
+ * @param tvId - The TMDB TV show ID
+ * @param params - Optional parameters including language and append_to_response
+ * @returns Detailed TV show information
+ */
+export async function getTVShowById(
+  tvId: number,
+  params: MovieDetailsParams = {}
+): Promise<MovieDetails> {
+  const { language = 'en-US', append_to_response } = params;
+  
+  // Build query parameters
+  const searchParams = new URLSearchParams();
+  searchParams.append('language', language);
+  if (append_to_response) {
+    searchParams.append('append_to_response', append_to_response);
+  }
+  
+  const endpoint = `/tv/${tvId}?${searchParams.toString()}`;
+
+  return tmdbFetchWithRetry(endpoint, {
+    next: CACHE_CONFIG.MOVIE_DETAILS
+  });
+}
+
+/**
+ * Get videos for a specific TV show
+ * @param tvId - The TMDB TV show ID
+ * @param params - Optional parameters including language
+ * @returns List of videos for the TV show
+ */
+export async function getTVShowVideos(
+  tvId: number,
+  params: MovieVideosParams = {}
+): Promise<VideosResponse> {
+  const { language = 'en-US' } = params;
+
+  return tmdbGet(
+    `/tv/${tvId}/videos`,
+    { language },
+    CACHE_CONFIG.MOVIE_DETAILS
+  );
+}
