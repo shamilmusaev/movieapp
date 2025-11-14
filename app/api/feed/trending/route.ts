@@ -55,8 +55,15 @@ export async function GET(request: NextRequest) {
     const moviesToProcess = trendingResponse.results.slice(0, 20);
     console.log(`📦 Processing ${moviesToProcess.length} movies...`);
 
-    // 3. Fetch movie details with videos in parallel
-    const moviePromises = moviesToProcess.map(async (movie) => {
+    // 3. Fetch movie details with videos in batches for progressive loading
+    console.log(`📦 Processing ${moviesToProcess.length} movies in progressive batches...`);
+    
+    // First batch - priority movies (first 8 for immediate display)
+    const priorityMovies = moviesToProcess.slice(0, 8);
+    const remainingMovies = moviesToProcess.slice(8);
+    
+    // Process priority movies first
+    const priorityPromises = priorityMovies.map(async (movie) => {
       try {
         // Fetch movie details with videos in single request
         const movieDetails = await getMovieById(movie.id, {
@@ -72,17 +79,59 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // 4. Wait for all movie processing to complete
-    const movieResults = await Promise.allSettled(moviePromises);
+    // Wait for priority movies to complete first
+    const priorityResults = await Promise.allSettled(priorityPromises);
     
-    // 5. Extract successful results and filter out failures
-    const movies = movieResults
+    // Extract successful priority results
+    const priorityMovies = priorityResults
       .filter((result): result is PromiseFulfilledResult<any> => 
         result.status === 'fulfilled' && result.value !== null
       )
       .map(result => result.value);
 
-    console.log(`✅ Successfully processed ${movies.length} movies`);
+    console.log(`✅ Processed ${priorityMovies.length} priority movies`);
+
+    // Process remaining movies in background batches
+    const backgroundMovies: FeedMovie[] = [];
+    if (remainingMovies.length > 0) {
+      const batchSize = 4; // Smaller batches for faster processing
+      for (let i = 0; i < remainingMovies.length; i += batchSize) {
+        const batch = remainingMovies.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (movie) => {
+          try {
+            const movieDetails = await getMovieById(movie.id, {
+              append_to_response: 'videos',
+            });
+
+            const feedMovie = await transformMovieForFeedServer(movieDetails);
+            return feedMovie;
+          } catch (error) {
+            console.warn(`❌ Failed to process movie ${movie.id}:`, error);
+            return null;
+          }
+        });
+
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        const successfulBatch = batchResults
+          .filter((result): result is PromiseFulfilledResult<any> => 
+            result.status === 'fulfilled' && result.value !== null
+          )
+          .map(result => result.value);
+
+        backgroundMovies.push(...successfulBatch);
+        console.log(`✅ Processed batch ${Math.floor(i/batchSize) + 1}: ${successfulBatch.length} movies`);
+      }
+    }
+
+    // Combine priority and background movies
+    const allMovies = [...priorityMovies, ...backgroundMovies];
+    const movieResults = allMovies.map(movie => ({ status: 'fulfilled' as const, value: movie }));
+    
+    // 5. Build response with pagination info (all movies already filtered)
+    const movies = allMovies;
+    console.log(`✅ Successfully processed ${movies.length} movies (${priorityMovies.length} priority + ${backgroundMovies.length} background)`);
 
     // 6. Build response with pagination info
     const response: FeedApiResponse = {
