@@ -1,210 +1,159 @@
 'use client';
 
 /**
- * Hook for fetching and managing feed data with pagination
- * Optimized to use server-side aggregation API for better performance
+ * SWR-based data fetching hook for vertical video feed
+ * Replaces Server-Sent Events with simple REST API + automatic caching
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { getMovieGenres } from '@/lib/api/tmdb/genres';
-import type { MovieWithTrailer, FeedState, Genre } from '@/types/feed.types';
-import type { FeedApiResponse } from '@/types/api.types';
+import useSWRInfinite from 'swr/infinite';
+import type { MovieWithTrailer, FeedContentType } from '@/types/feed.types';
 
-interface UseFeedDataReturn extends FeedState {
-  loadMore: () => Promise<void>;
-  retry: () => Promise<void>;
-  refetch: () => Promise<void>;
+interface FeedResponse {
+  movies: MovieWithTrailer[];
+  hasMore: boolean;
+  page: number;
 }
 
-/**
- * Custom hook for managing feed data with trending movies
- * Optimized to use server-side aggregation for faster initial loading
- * Handles pagination and deduplication, with async genre loading
- */
-export function useFeedData(): UseFeedDataReturn {
-  const [state, setState] = useState<FeedState>({
-    movies: [],
-    loading: true,
-    error: null,
-    hasMore: true,
-    page: 1,
-    viewedMovieIds: new Set<number>(),
-  });
-
-  const [genreMap, setGenreMap] = useState<Map<number, string>>(new Map());
-
-  // Load genres asynchronously without blocking the feed
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadGenres() {
-      console.log('🎭 Loading genres asynchronously...');
-      try {
-        const genres = await getMovieGenres();
-        console.log('✅ Genres loaded:', genres.length);
-        if (!cancelled) {
-          const map = new Map<number, string>();
-          genres.forEach((genre: Genre) => {
-            map.set(genre.id, genre.name);
-          });
-          setGenreMap(map);
-          console.log('✅ Genre map created with', map.size, 'entries');
-        }
-      } catch (error) {
-        console.error('❌ Failed to load genres:', error);
-        // Don't set error state - feed continues without genres
-        if (!cancelled) {
-          setGenreMap(new Map());
-          console.log('⚠️ Continuing without genres due to error');
-        }
-      }
-    }
-
-    loadGenres();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-
+interface UseFeedDataOptions {
+  /**
+   * Content type (movie, tv, anime)
+   */
+  contentType: FeedContentType;
 
   /**
-   * Load initial feed data with progressive loading
+   * Initial page size
    */
-  const loadInitial = useCallback(async () => {
-    console.log('🔄 loadInitial called - starting immediately (no genre blocking)');
-    console.log('📡 Starting to load feed...');
-    setState(prev => ({ ...prev, loading: true, error: null }));
+  pageSize?: number;
+}
 
-    try {
-      console.log('🎬 Fetching movies...');
-      
-      // Fetch with progressive loading (priority batch first)
-      const response = await fetch('/api/feed/trending?page=1');
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data: FeedApiResponse = await response.json();
-      console.log('✅ Feed loaded:', data.movies.length);
-
-      // Filter out already viewed movies
-      const newMovies = data.movies.filter(
-        (movie: MovieWithTrailer) => !state.viewedMovieIds.has(movie.id)
-      );
-      console.log('🔢 New movies after filter:', newMovies.length);
-
-      setState(prev => ({
-        ...prev,
-        movies: newMovies,
-        loading: false,
-        page: 1,
-        hasMore: data.hasMore,
-        viewedMovieIds: new Set(newMovies.map(m => m.id)),
-      }));
-    } catch (error) {
-      console.error('❌ Error loading feed:', error);
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load feed',
-      }));
-    }
-  }, [state.viewedMovieIds]);
+interface UseFeedDataReturn {
+  /**
+   * All loaded movies (flattened from all pages)
+   */
+  movies: MovieWithTrailer[];
 
   /**
-   * Load more movies (pagination)
+   * Whether initial data is loading
    */
-  const loadMore = useCallback(async () => {
-    if (state.loading || !state.hasMore) return;
+  loading: boolean;
 
-    setState(prev => ({ ...prev, loading: true }));
+  /**
+   * Whether data is being revalidated
+   */
+  isValidating: boolean;
 
-    try {
-      const nextPage = state.page + 1;
-      
-      // Direct API call for pagination (progressive loading on server)
-      const response = await fetch(`/api/feed/trending?page=${nextPage}`);
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data: FeedApiResponse = await response.json();
-      console.log('✅ Additional page loaded:', data.movies.length);
+  /**
+   * Whether more pages exist
+   */
+  hasMore: boolean;
 
-      // Filter out already viewed movies
-      const newMovies = data.movies.filter(
-        (movie: MovieWithTrailer) => !state.viewedMovieIds.has(movie.id)
-      );
-      console.log('🔢 New movies after filter:', newMovies.length);
+  /**
+   * Current error if any
+   */
+  error: Error | undefined;
 
-      if (newMovies.length === 0) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          hasMore: false,
-        }));
-        return;
-      }
+  /**
+   * Load next page
+   */
+  loadMore: () => Promise<void>;
 
-      setState(prev => {
-        const updatedViewedIds = new Set(prev.viewedMovieIds);
-        newMovies.forEach(m => updatedViewedIds.add(m.id));
-
-        return {
-          ...prev,
-          movies: [...prev.movies, ...newMovies],
-          loading: false,
-          page: nextPage,
-          hasMore: data.hasMore,
-          viewedMovieIds: updatedViewedIds,
-        };
-      });
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load more',
-      }));
-    }
-  }, [state.loading, state.hasMore, state.page, state.viewedMovieIds]);
+  /**
+   * Manually refresh all data
+   */
+  refetch: () => Promise<void>;
 
   /**
    * Retry after error
    */
-  const retry = useCallback(async () => {
-    // Reset state and retry loading
-    setState(prev => ({ ...prev, error: null, loading: true }));
-    
-    // Try to reload data immediately
-    try {
-      await loadInitial();
-    } catch (error) {
-      console.error('❌ Retry failed:', error);
-    }
-  }, [loadInitial]);
+  retry: () => Promise<void>;
 
   /**
-   * Refetch current page
+   * Current page number (1-indexed)
    */
-  const refetch = useCallback(async () => {
-    await loadInitial();
-  }, [loadInitial]);
+  page: number;
+}
 
-  // Load initial data immediately on mount (no genre blocking)
-  useEffect(() => {
-    console.log('🎯 useEffect check - starting initial load immediately');
-    if (state.movies.length === 0) {
-      console.log('✨ Starting feed load immediately (no genre wait)');
-      loadInitial();
+/**
+ * Fetcher function for SWR
+ */
+async function fetcher(url: string): Promise<FeedResponse> {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    const error = new Error('Failed to fetch feed data');
+    throw error;
+  }
+
+  return res.json();
+}
+
+/**
+ * Get SWR key for a specific page
+ */
+function getKey(contentType: FeedContentType) {
+  return (pageIndex: number, previousPageData: FeedResponse | null) => {
+    // Reached the end
+    if (previousPageData && !previousPageData.hasMore) {
+      return null;
     }
-  }, [state.movies.length, loadInitial]);
+
+    // First page
+    const page = pageIndex + 1;
+    return `/api/feed/trending?page=${page}&media_type=${contentType}`;
+  };
+}
+
+/**
+ * Hook for fetching feed data with infinite scroll
+ */
+export function useFeedData({
+  contentType,
+  pageSize = 20,
+}: UseFeedDataOptions): UseFeedDataReturn {
+  const { data, error, isLoading, isValidating, size, setSize, mutate } = useSWRInfinite<FeedResponse>(
+    getKey(contentType),
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000, // 60 seconds
+      revalidateFirstPage: false,
+      parallel: false, // Load pages sequentially
+    }
+  );
+
+  // Flatten all pages into single array
+  const movies = data ? data.flatMap(page => page.movies) : [];
+
+  // Check if more pages exist
+  const hasMore = data ? data[data.length - 1]?.hasMore ?? false : false;
+
+  // Load next page
+  const loadMore = async () => {
+    if (!isLoading && !isValidating && hasMore) {
+      await setSize(size + 1);
+    }
+  };
+
+  // Refresh all data
+  const refetch = async () => {
+    await mutate();
+  };
+
+  // Retry (same as refetch for SWR)
+  const retry = async () => {
+    await mutate();
+  };
 
   return {
-    ...state,
+    movies,
+    loading: isLoading && !data,
+    isValidating,
+    hasMore,
+    error,
     loadMore,
-    retry,
     refetch,
+    retry,
+    page: size,
   };
 }

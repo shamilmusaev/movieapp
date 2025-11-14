@@ -1,6 +1,6 @@
 /**
- * Streaming API Route Handler for instant feed loading
- * Uses Server-Sent Events to send movies as they become ready
+ * Simple REST API Route Handler for feed data
+ * Returns JSON response with movies (no streaming, uses SWR caching client-side)
  */
 
 import { NextRequest } from 'next/server';
@@ -23,7 +23,7 @@ async function checkAnimeTrailerCoverage(animeResults: any[]): Promise<{coverage
       const details = await (anime.first_air_date ? getTVShowById : getMovieById)(anime.id, {
         append_to_response: 'videos'
       });
-      
+
       return {
         id: anime.id,
         hasTrailer: !!((details as any).videos?.results?.length > 0)
@@ -48,8 +48,8 @@ async function checkAnimeTrailerCoverage(animeResults: any[]): Promise<{coverage
 export const revalidate = 1800;
 
 /**
- * GET handler for streaming trending feed data
- * Returns movies as Server-Sent Events for instant display
+ * GET handler for feed data
+ * Returns simple JSON response (SWR handles caching client-side)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const pageParam = searchParams.get('page');
     const mediaTypeParam = searchParams.get('media_type');
-    
+
     const page = pageParam ? parseInt(pageParam, 10) : 1;
     const mediaType: FeedContentType = (mediaTypeParam as FeedContentType) || 'movie';
 
@@ -76,232 +76,116 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`🎬 Starting streaming feed for ${mediaType} page ${page}...`);
+    // Fetch content based on media type
+    let trendingResponse: any;
 
-    // Create a readable stream for Server-Sent Events
-    const encoder = new TextEncoder();
-    
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          // 1. Send initial response headers
-          controller.enqueue(encoder.encode('event: start\n'));
-          controller.enqueue(encoder.encode('data: {"status":"fetching_trending"}\n\n'));
+    if (mediaType === 'movie') {
+      trendingResponse = await getTrendingMovies({
+        time_window: 'day',
+        page,
+      });
+    } else if (mediaType === 'tv') {
+      trendingResponse = await getTrendingTVShows({
+        time_window: 'day',
+        page,
+      });
+    } else if (mediaType === 'anime') {
+      // Try multi-stage fallback for anime
+      let animeAttempt = 1;
+      let animeResponse: any;
 
-          // 2. Fetch content based on media type
-          let trendingResponse: any;
-          
-          if (mediaType === 'movie') {
-            trendingResponse = await getTrendingMovies({
-              time_window: 'day',
-              page,
-            });
-          } else if (mediaType === 'tv') {
-            trendingResponse = await getTrendingTVShows({
-              time_window: 'day',
-              page,
-            });
-          } else if (mediaType === 'anime') {
-            // Try multi-stage fallback for anime
-            let animeAttempt = 1;
-            let animeResponse: any;
-            
-            while (animeAttempt <= 4) {
-              animeResponse = await getAnimeMovies({
-                page,
-                attempt: animeAttempt as 1 | 2 | 3 | 4,
-              });
-              
-              // If we got sufficient results, use them
-              if (animeResponse.results.length >= 10) {
-                break;
-              }
-              
-              animeAttempt++;
-            }
-            
-            // Check trailer availability for anime results
-            if (animeResponse.results.length > 0) {
-              const animeWithTrailers = await checkAnimeTrailerCoverage(animeResponse.results);
-              if (animeWithTrailers.coverage < 0.5 && animeAttempt < 4) {
-                // Less than 50% have trailers, try next attempt
-                animeAttempt++;
-                animeResponse = await getAnimeMovies({
-                  page,
-                  attempt: animeAttempt as 1 | 2 | 3 | 4,
-                });
-              } else {
-                // Filter anime to only include items with trailers
-                animeResponse.results = animeResponse.results.filter((anime: any) => 
-                  animeWithTrailers.itemsWithTrailers.some(item => item.id === anime.id)
-                );
-              }
-            }
-            
-            trendingResponse = animeResponse;
-          }
+      while (animeAttempt <= 4) {
+        animeResponse = await getAnimeMovies({
+          page,
+          attempt: animeAttempt as 1 | 2 | 3 | 4,
+        });
 
-          controller.enqueue(encoder.encode('data: {"status":"trending_fetched","total":' + trendingResponse.results.length + '}\n\n'));
-
-          if (trendingResponse.results.length === 0) {
-            controller.enqueue(encoder.encode('event: complete\n'));
-            controller.enqueue(encoder.encode('data: {"status":"complete","movies":[],"page":' + page + ',"totalPages":' + trendingResponse.total_pages + ',"hasMore":false}\n\n'));
-            controller.close();
-            return;
-          }
-
-          // 3. Limit to 20 movies per page
-          const moviesToProcess = trendingResponse.results.slice(0, 20);
-          const allMovies: FeedMovie[] = [];
-
-          // 4. Process priority movies (first 14) immediately for faster initial load
-          const priorityMovies = moviesToProcess.slice(0, 14);
-          const remainingMovies = moviesToProcess.slice(14);
-          
-          controller.enqueue(encoder.encode('data: {"status":"processing_priority","count":' + priorityMovies.length + '}\n\n'));
-
-          // Process priority movies/TV shows in parallel
-          const priorityPromises = priorityMovies.map(async (movie: any, index: number) => {
-            try {
-              let movieDetails;
-              
-              // Fetch details based on media type
-              if (mediaType === 'tv' || (mediaType === 'anime' && movie.first_air_date)) {
-                // TV show
-                movieDetails = await getTVShowById(movie.id, {
-                  append_to_response: 'videos',
-                });
-              } else {
-                // Movie (including anime movies)
-                movieDetails = await getMovieById(movie.id, {
-                  append_to_response: 'videos',
-                });
-              }
-              
-              const feedMovie = await transformMovieForFeedServer(movieDetails);
-              
-              // Send each movie as it's ready
-              controller.enqueue(encoder.encode('event: movie\n'));
-              controller.enqueue(encoder.encode('data: ' + JSON.stringify({
-                movie: feedMovie,
-                index: index,
-                total: moviesToProcess.length,
-                type: 'priority'
-              }) + '\n\n'));
-              
-              return feedMovie;
-            } catch (error) {
-              console.warn(`❌ Failed to process ${mediaType} ${movie.id}:`, error);
-              return null;
-            }
-          });
-
-          const priorityResults = await Promise.allSettled(priorityPromises);
-          const processedPriorityMovies = priorityResults
-            .filter((result): result is PromiseFulfilledResult<any> => 
-              result.status === 'fulfilled' && result.value !== null
-            )
-            .map(result => result.value);
-
-          allMovies.push(...processedPriorityMovies);
-          controller.enqueue(encoder.encode('data: {"status":"priority_complete","count":' + processedPriorityMovies.length + '}\n\n'));
-
-          // 5. Process remaining movies in larger batches for faster loading
-          if (remainingMovies.length > 0) {
-            const batchSize = 8;
-            controller.enqueue(encoder.encode('data: {"status":"processing_background","count":' + remainingMovies.length + '}\n\n'));
-
-            for (let i = 0; i < remainingMovies.length; i += batchSize) {
-              const batch = remainingMovies.slice(i, i + batchSize);
-              const batchStartIndex = priorityMovies.length + i;
-              
-              const batchPromises = batch.map(async (movie: any, batchIndex: number) => {
-                try {
-                  let movieDetails;
-                  
-                  // Fetch details based on media type
-                  if (mediaType === 'tv' || (mediaType === 'anime' && movie.first_air_date)) {
-                    // TV show
-                    movieDetails = await getTVShowById(movie.id, {
-                      append_to_response: 'videos',
-                    });
-                  } else {
-                    // Movie (including anime movies)
-                    movieDetails = await getMovieById(movie.id, {
-                      append_to_response: 'videos',
-                    });
-                  }
-                  
-                  const feedMovie = await transformMovieForFeedServer(movieDetails);
-                  
-                  // Send each movie as it's ready
-                  controller.enqueue(encoder.encode('event: movie\n'));
-                  controller.enqueue(encoder.encode('data: ' + JSON.stringify({
-                    movie: feedMovie,
-                    index: batchStartIndex + batchIndex,
-                    total: moviesToProcess.length,
-                    type: 'background',
-                    batch: Math.floor((priorityMovies.length + i) / batchSize)
-                  }) + '\n\n'));
-                  
-                  return feedMovie;
-                } catch (error) {
-                  console.warn(`❌ Failed to process ${mediaType} ${movie.id}:`, error);
-                  return null;
-                }
-              });
-
-              const batchResults = await Promise.allSettled(batchPromises);
-              const successfulBatch = batchResults
-                .filter((result): result is PromiseFulfilledResult<any> => 
-                  result.status === 'fulfilled' && result.value !== null
-                )
-                .map(result => result.value);
-
-              allMovies.push(...successfulBatch);
-              
-              controller.enqueue(encoder.encode('data: {"status":"batch_complete","batch":' + Math.floor((priorityMovies.length + i) / batchSize) + ',"count":' + successfulBatch.length + '}\n\n'));
-            }
-          }
-
-          // 6. Send final completion event
-          const hasMore = page < trendingResponse.total_pages && allMovies.length > 0;
-          
-          controller.enqueue(encoder.encode('event: complete\n'));
-          controller.enqueue(encoder.encode('data: ' + JSON.stringify({
-            status: 'complete',
-            movies: allMovies,
-            page,
-            totalPages: trendingResponse.total_pages,
-            hasMore
-          }) + '\n\n'));
-          
-          controller.close();
-          console.log(`✅ Streaming complete: ${allMovies.length} movies sent`);
-
-        } catch (error) {
-          console.error('❌ Streaming error:', error);
-          controller.enqueue(encoder.encode('event: error\n'));
-          controller.enqueue(encoder.encode('data: ' + JSON.stringify({
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Internal server error'
-          }) + '\n\n'));
-          controller.close();
+        // If we got sufficient results, use them
+        if (animeResponse.results.length >= 10) {
+          break;
         }
+
+        animeAttempt++;
+      }
+
+      // Check trailer availability for anime results
+      if (animeResponse.results.length > 0) {
+        const animeWithTrailers = await checkAnimeTrailerCoverage(animeResponse.results);
+        if (animeWithTrailers.coverage < 0.5 && animeAttempt < 4) {
+          // Less than 50% have trailers, try next attempt
+          animeAttempt++;
+          animeResponse = await getAnimeMovies({
+            page,
+            attempt: animeAttempt as 1 | 2 | 3 | 4,
+          });
+        } else {
+          // Filter anime to only include items with trailers
+          animeResponse.results = animeResponse.results.filter((anime: any) =>
+            animeWithTrailers.itemsWithTrailers.some(item => item.id === anime.id)
+          );
+        }
+      }
+
+      trendingResponse = animeResponse;
+    }
+
+    if (trendingResponse.results.length === 0) {
+      return Response.json({
+        movies: [],
+        hasMore: false,
+        page,
+      });
+    }
+
+    // Limit to 20 movies per page
+    const moviesToProcess = trendingResponse.results.slice(0, 20);
+    const allMovies: FeedMovie[] = [];
+
+    // Process all movies in parallel
+    const moviePromises = moviesToProcess.map(async (movie: any) => {
+      try {
+        let movieDetails;
+
+        // Fetch details based on media type
+        if (mediaType === 'tv' || (mediaType === 'anime' && movie.first_air_date)) {
+          // TV show
+          movieDetails = await getTVShowById(movie.id, {
+            append_to_response: 'videos',
+          });
+        } else {
+          // Movie (including anime movies)
+          movieDetails = await getMovieById(movie.id, {
+            append_to_response: 'videos',
+          });
+        }
+
+        const feedMovie = await transformMovieForFeedServer(movieDetails);
+        return feedMovie;
+      } catch (error) {
+        return null;
       }
     });
 
-    // Return SSE response
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
+    const results = await Promise.allSettled(moviePromises);
+    const processedMovies = results
+      .filter((result): result is PromiseFulfilledResult<any> =>
+        result.status === 'fulfilled' && result.value !== null
+      )
+      .map(result => result.value);
+
+    allMovies.push(...processedMovies);
+
+    // Calculate if more pages exist
+    const hasMore = page < trendingResponse.total_pages && allMovies.length > 0;
+
+    // Return simple JSON response
+    return Response.json({
+      movies: allMovies,
+      hasMore,
+      page,
     });
 
   } catch (error) {
-    console.error('❌ Error in feed API route:', error);
     return Response.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

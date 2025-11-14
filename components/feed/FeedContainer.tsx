@@ -4,9 +4,10 @@
  * Feed Container - main wrapper for vertical video feed
  */
 
-import { useState, useRef, useCallback, useEffect, memo } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { VideoCard } from './VideoCard';
 import { FeedControls } from './FeedControls';
+import { useActiveVideoIndex } from '@/hooks/useActiveVideoIndex';
 import type { MovieWithTrailer } from '@/types/feed.types';
 
 interface FeedContainerProps {
@@ -28,98 +29,139 @@ function FeedContainerComponent({
   onLoadMore,
   onMovieClick,
 }: FeedContainerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [scrollNode, setScrollNode] = useState<HTMLDivElement | null>(null);
   const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
 
-  // Set active video when movies load
+  const handleActiveChange = useCallback(
+    (index: number) => {
+      setActiveVideoId(movies[index]?.id ?? null);
+    },
+    [movies]
+  );
+
+  const handleNearEnd = useCallback(() => {
+    if (hasMore && !loading) {
+      onLoadMore();
+    }
+  }, [hasMore, loading, onLoadMore]);
+
+  const {
+    activeIndex,
+    containerRef,
+    registerCard,
+    unregisterCard,
+    goNext,
+    goPrevious,
+  } = useActiveVideoIndex({
+    itemCount: movies.length,
+    onActiveChange: handleActiveChange,
+    onNearEnd: handleNearEnd,
+  });
+
   useEffect(() => {
     if (movies.length > 0 && activeVideoId === null) {
       setActiveVideoId(movies[0].id);
-      console.log('🎬 Setting first video as active:', movies[0].title);
     }
   }, [movies, activeVideoId]);
 
-  /**
-   * Handle video visibility change
-   */
-  const handleVisibilityChange = useCallback(
-    (index: number) => (visible: boolean) => {
-      if (visible) {
-        setCurrentIndex(index);
-        setActiveVideoId(movies[index]?.id ?? null);
-
-        // Trigger prefetch when 10 videos from end for smoother experience
-        if (hasMore && !loading && index >= movies.length - 10) {
-          console.log('🔄 Prefetching next page (10 videos from end)');
-          onLoadMore();
-        }
-      }
+  const combinedContainerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      setScrollNode(node);
+      containerRef(node);
     },
-    [movies, hasMore, loading, onLoadMore]
+    [containerRef]
   );
 
-  /**
-   * Scroll to specific index
-   */
-  const scrollToIndex = useCallback((index: number) => {
-    if (!containerRef.current) return;
+  useEffect(() => {
+    if (!scrollNode) return;
 
-    const container = containerRef.current;
-    const targetCard = container.children[index] as HTMLElement;
+    let lastWheelTime = 0;
 
-    if (targetCard) {
-      targetCard.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
-  }, []);
+    const handleWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) < 60) return;
 
-  /**
-   * Navigate to previous video
-   */
-  const handlePrevious = useCallback(() => {
-    if (currentIndex > 0) {
-      scrollToIndex(currentIndex - 1);
-    }
-  }, [currentIndex, scrollToIndex]);
+      const now = Date.now();
+      if (now - lastWheelTime < 220) {
+        event.preventDefault();
+        return;
+      }
 
-  /**
-   * Navigate to next video
-   */
-  const handleNext = useCallback(() => {
-    if (currentIndex < movies.length - 1) {
-      scrollToIndex(currentIndex + 1);
-    }
-  }, [currentIndex, movies.length, scrollToIndex]);
+      lastWheelTime = now;
+      event.preventDefault();
+      if (event.deltaY > 0) {
+        goNext();
+      } else {
+        goPrevious();
+      }
+    };
 
-  /**
-   * Keyboard navigation
-   */
+    scrollNode.addEventListener('wheel', handleWheel, { passive: false });
+    return () => scrollNode.removeEventListener('wheel', handleWheel);
+  }, [scrollNode, goNext, goPrevious]);
+
+  useEffect(() => {
+    if (!scrollNode) return;
+
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      touchStartY = event.touches[0].clientY;
+      touchStartTime = Date.now();
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      if (touchStartTime === 0 || event.changedTouches.length === 0) return;
+
+      const deltaY = event.changedTouches[0].clientY - touchStartY;
+      const duration = Date.now() - touchStartTime;
+
+      if (Math.abs(deltaY) > 60 && duration < 400) {
+        event.preventDefault();
+        if (deltaY < 0) {
+          goNext();
+        } else {
+          goPrevious();
+        }
+      }
+
+      touchStartTime = 0;
+      touchStartY = 0;
+    };
+
+    scrollNode.addEventListener('touchstart', handleTouchStart, { passive: true });
+    scrollNode.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      scrollNode.removeEventListener('touchstart', handleTouchStart);
+      scrollNode.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [scrollNode, goNext, goPrevious]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
         e.preventDefault();
-        handlePrevious();
+        goPrevious();
       } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
         e.preventDefault();
-        handleNext();
+        goNext();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrevious, handleNext]);
+  }, [goNext, goPrevious]);
 
-  const canGoPrevious = currentIndex > 0;
-  const canGoNext = currentIndex < movies.length - 1;
+  const canGoPrevious = activeIndex > 0;
+  const canGoNext = activeIndex < movies.length - 1;
 
   return (
     <div className="relative w-full h-[calc(100vh-60px)] overflow-hidden bg-black">
       {/* Vertical scroll container with snap points */}
       <div
-        ref={containerRef}
+        ref={combinedContainerRef}
         className="w-full h-[calc(100vh-60px)] overflow-y-scroll snap-y snap-mandatory scroll-smooth"
         style={{
           scrollbarWidth: 'none', // Firefox
@@ -135,17 +177,23 @@ function FeedContainerComponent({
         `}</style>
 
         {/* Video cards */}
-        {movies.map((movie, index) => (
-          <VideoCard
-            key={movie.id}
-            movie={movie}
-            isActive={movie.id === activeVideoId}
-            autoplay={index === 0} // Только первое видео должно автовоспроизводиться
-            index={index}
-            onVisibilityChange={handleVisibilityChange(index)}
-            onMovieClick={onMovieClick}
-          />
-        ))}
+        {movies.map((movie, index) => {
+          const isActive = movie.id === activeVideoId;
+          const shouldRenderPlayer = Math.abs(index - activeIndex) <= 1;
+
+          return (
+            <VideoCard
+              key={movie.id}
+              movie={movie}
+              isActive={isActive}
+              index={index}
+              shouldRenderPlayer={shouldRenderPlayer}
+              registerCard={registerCard}
+              unregisterCard={unregisterCard}
+              onMovieClick={onMovieClick}
+            />
+          );
+        })}
 
         {/* Loading indicator at bottom */}
         {loading && (
@@ -172,10 +220,11 @@ function FeedContainerComponent({
       <FeedControls
         canGoPrevious={canGoPrevious}
         canGoNext={canGoNext}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-        currentIndex={currentIndex}
+        onPrevious={goPrevious}
+        onNext={goNext}
+        currentIndex={activeIndex}
         totalCount={movies.length}
+        isBuffering={loading && hasMore}
       />
     </div>
   );

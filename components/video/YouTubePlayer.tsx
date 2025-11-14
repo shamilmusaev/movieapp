@@ -5,47 +5,31 @@
  * Implements 2024 best practices: allow="autoplay" attribute, no deprecated parameters
  */
 
-import { useEffect, useRef, memo } from 'react';
-import { useVideoPlayer } from '@/hooks/useVideoPlayer';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface YouTubePlayerProps {
   /**
    * YouTube video ID
    */
   videoId: string;
-
   /**
-   * Whether to autoplay the video
+   * Indicates whether this iframe should actively play audio/video.
    */
-  autoplay?: boolean;
-
+  isActive: boolean;
   /**
-   * Whether the video is currently active (visible)
-   */
-  isActive?: boolean;
-
-  /**
-   * Whether the video should be muted
+   * Whether the video should be muted.
    */
   isMuted?: boolean;
-
   /**
-   * Callback when mute state changes
-   */
-  onToggleMute?: () => void;
-
-  /**
-   * Callback when video loads
+   * Callback when the iframe loads.
    */
   onLoad?: () => void;
-
   /**
-   * Callback when video errors
+   * Callback when iframe errors.
    */
   onError?: () => void;
-
   /**
-   * CSS class name
+   * Additional CSS classes.
    */
   className?: string;
 }
@@ -56,61 +40,47 @@ interface YouTubePlayerProps {
  */
 function YouTubePlayerComponent({
   videoId,
-  autoplay = false,
-  isActive = false,
-  isMuted: externalIsMuted = true,
-  onToggleMute,
+  isActive,
+  isMuted = true,
   onLoad,
   onError,
   className = '',
 }: YouTubePlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const {
-    isPlaying,
-    isMuted,
-    hasError,
-    isLoaded,
-    setPlaying,
-    setError,
-    setLoaded,
-  } = useVideoPlayer({
-    videoId,
-    autoplay,
-  });
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  // Build YouTube iframe URL with 2024 best practices
-  const buildIframeUrl = (videoId: string): string => {
-    const params = new URLSearchParams({
-      autoplay: '1', // Always enable autoplay (controlled by isActive via postMessage)
-      mute: '1', // Always start muted for browser autoplay policy
-      controls: '0', // Hide YouTube controls for immersive experience
-      rel: '0', // Don't show related videos
-      loop: '1',
-      playlist: videoId, // Required for loop to work
-      enablejsapi: '1', // Enable JavaScript API for better control
-      playsinline: '1', // Play inline on iOS
-      fs: '0', // Disable fullscreen button
-      iv_load_policy: '3', // Hide video annotations
-      disablekb: '1', // Disable keyboard controls
-    });
+  const buildIframeUrl = useCallback(
+    (id: string) => {
+      const params = new URLSearchParams({
+        autoplay: '1',
+        mute: '1',
+        controls: '0',
+        rel: '0',
+        loop: '1',
+        playlist: id,
+        enablejsapi: '1',
+        playsinline: '1',
+        fs: '0',
+        iv_load_policy: '3',
+        disablekb: '1',
+      });
 
-    console.log('🎥 Building iframe URL for video:', videoId);
-    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
-  };
+      return `https://www.youtube.com/embed/${id}?${params.toString()}`;
+    },
+    []
+  );
 
-  // Control playback based on isActive with retry mechanism
-  useEffect(() => {
-    if (!iframeRef.current || !isLoaded) return;
+  const iframeSrc = useMemo(() => buildIframeUrl(videoId), [buildIframeUrl, videoId]);
+  const iframeKey = useMemo(() => `${videoId}-${reloadKey}`, [videoId, reloadKey]);
 
-    console.log('▶️ YouTube playback control - isActive:', isActive, 'isPlaying:', isPlaying, 'videoId:', videoId);
+  const sendCommand = useCallback(
+    (command: 'playVideo' | 'pauseVideo' | 'mute' | 'unMute', attempt: number = 1) => {
+      const iframe = iframeRef.current;
+      if (!iframe) return;
 
-    const sendCommand = (command: string, attempt: number = 1) => {
       try {
-        const iframe = iframeRef.current;
-        if (!iframe) return;
-
-        console.log(`📡 Sending command to YouTube (attempt ${attempt}):`, command);
-
         iframe.contentWindow?.postMessage(
           JSON.stringify({
             event: 'command',
@@ -120,69 +90,50 @@ function YouTubePlayerComponent({
           '*'
         );
 
-        // Retry up to 3 times with increasing delays for better reliability
         if (command === 'playVideo' && attempt < 3) {
-          setTimeout(() => sendCommand(command, attempt + 1), attempt * 500);
+          setTimeout(() => sendCommand(command, attempt + 1), attempt * 400);
         }
       } catch (error) {
         console.warn('Failed to control YouTube player:', error);
       }
-    };
+    },
+    []
+  );
 
-    // Play if active and playing state is true, otherwise pause
-    const command = isActive && isPlaying ? 'playVideo' : 'pauseVideo';
-
-    // Longer initial delay to ensure YouTube API is fully ready
-    const timer = setTimeout(() => {
-      sendCommand(command);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [isActive, isPlaying, videoId, isLoaded]);
-
-  // Handle mute state changes
   useEffect(() => {
-    if (!iframeRef.current || !isLoaded) return;
-
-    console.log('🔊 YouTube mute control - externalIsMuted:', externalIsMuted, 'videoId:', videoId);
-
-    // Longer delay to ensure YouTube API is ready
+    if (!isLoaded) return;
     const timer = setTimeout(() => {
-      try {
-        const iframe = iframeRef.current;
-        if (!iframe) return;
-
-        // Send mute or unmute command based on external state
-        const command = externalIsMuted ? 'mute' : 'unMute';
-
-        console.log('📡 Sending mute command to YouTube:', command);
-
-        iframe.contentWindow?.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: command,
-            args: '',
-          }),
-          '*'
-        );
-      } catch (error) {
-        console.warn('Failed to control YouTube mute state:', error);
-      }
-    }, 300);
-
+      sendCommand(isActive ? 'playVideo' : 'pauseVideo');
+    }, 150);
     return () => clearTimeout(timer);
-  }, [externalIsMuted, videoId, isLoaded]);
+  }, [isActive, isLoaded, sendCommand]);
 
-  // Handle iframe load
+  useEffect(() => {
+    if (!isLoaded) return;
+    const timer = setTimeout(() => {
+      sendCommand(isMuted ? 'mute' : 'unMute');
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [isMuted, isLoaded, sendCommand]);
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+  }, [videoId, reloadKey]);
+
   const handleLoad = () => {
-    setLoaded(true);
+    setIsLoaded(true);
     onLoad?.();
   };
 
-  // Handle iframe error
   const handleError = () => {
-    setError(true);
+    setHasError(true);
     onError?.();
+  };
+
+  const handleRetry = () => {
+    setHasError(false);
+    setReloadKey(prev => prev + 1);
   };
 
   if (hasError) {
@@ -191,7 +142,7 @@ function YouTubePlayerComponent({
         <div className="text-center p-6">
           <p className="text-white mb-4">Failed to load video</p>
           <button
-            onClick={() => setError(false)}
+            onClick={handleRetry}
             className="px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors"
           >
             Retry
@@ -203,10 +154,9 @@ function YouTubePlayerComponent({
 
   return (
     <div className={`relative w-full aspect-video ${className}`}>
-      {/* Loading or inactive state */}
-      {(!isActive || !isLoaded) && (
+      {(!isLoaded || !isActive) && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-          {!isActive ? (
+          {isLoaded ? (
             <div className="text-white text-sm">Ready to play</div>
           ) : (
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
@@ -214,10 +164,10 @@ function YouTubePlayerComponent({
         </div>
       )}
 
-      {/* YouTube iframe - always render but control play/pause via postMessage */}
       <iframe
+        key={iframeKey}
         ref={iframeRef}
-        src={buildIframeUrl(videoId)}
+        src={iframeSrc}
         title="YouTube video player"
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
         allowFullScreen
@@ -227,21 +177,15 @@ function YouTubePlayerComponent({
         style={{ border: 'none' }}
       />
 
-      {/* Overlay to hide YouTube UI elements with corner blocks */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Top-left corner block - covers channel avatar and title start */}
         <div
           className="absolute top-0 left-0 w-[200px] h-[70px] bg-gradient-to-r from-black via-black/95 to-transparent"
           aria-hidden="true"
         />
-
-        {/* Top-right corner block - covers "Watch later", "Share" and "1/1" counter */}
         <div
           className="absolute top-0 right-0 w-[200px] h-[70px] bg-gradient-to-l from-black via-black/95 to-transparent"
           aria-hidden="true"
         />
-
-        {/* Bottom overlay - covers progress bar and remaining controls */}
         <div
           className="absolute bottom-0 left-0 right-0 h-[50px] bg-gradient-to-t from-black via-black/90 to-transparent"
           aria-hidden="true"
@@ -251,5 +195,4 @@ function YouTubePlayerComponent({
   );
 }
 
-// Memoize to prevent unnecessary re-renders
 export const YouTubePlayer = memo(YouTubePlayerComponent);
