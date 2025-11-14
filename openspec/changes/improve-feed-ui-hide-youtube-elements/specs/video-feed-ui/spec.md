@@ -2,6 +2,34 @@
 
 ## ADDED Requirements
 
+### Requirement: Independent Feed State Per Content Type
+The system SHALL maintain separate feed state for each content type (Movies, TV Shows, Anime) using `Record<FeedContentType, FeedState>` structure to enable independent pagination and content caching.
+
+#### Scenario: Maintain separate state per content type
+- **GIVEN** feed manages multiple content types
+- **WHEN** storing feed state
+- **THEN** state structure uses `Record<'movie' | 'tv' | 'anime', FeedState>` mapping each type to its own state
+
+#### Scenario: Each state contains complete pagination data
+- **GIVEN** state for a content type is stored
+- **WHEN** accessing state
+- **THEN** state includes: `movies: MovieWithTrailer[]`, `page: number`, `hasMore: boolean`, `viewedMovieIds: Set<number>`, `loading: boolean`, `error: string | null`
+
+#### Scenario: Initialize new content type state
+- **GIVEN** user switches to content type never loaded before
+- **WHEN** accessing state for that type
+- **THEN** system creates new FeedState with page=1, empty movies array, hasMore=true
+
+#### Scenario: Restore cached content type state
+- **GIVEN** user previously loaded Movies and switched to TV Shows
+- **WHEN** user switches back to Movies
+- **THEN** system restores previous Movies state with all loaded movies and current page number
+
+#### Scenario: Independent pagination counters
+- **GIVEN** Movies at page 3, TV Shows at page 1, Anime at page 2
+- **WHEN** user switches between tabs
+- **THEN** each content type maintains its own page counter independently
+
 ### Requirement: Content Type Navigation Tabs
 The system SHALL provide horizontal tab navigation at the top of the feed allowing users to switch between Movies, TV Shows, and Anime content types.
 
@@ -43,7 +71,17 @@ The system SHALL provide horizontal tab navigation at the top of the feed allowi
 #### Scenario: Independent pagination per content type
 - **GIVEN** user has scrolled through 20 movies
 - **WHEN** user switches to TV Shows tab
-- **THEN** pagination resets and shows first page of TV shows
+- **THEN** system shows first page of TV shows (separate state, not affected by movie pagination)
+
+#### Scenario: Restore previous content when returning to tab
+- **GIVEN** user loaded 20 movies, then switched to TV Shows
+- **WHEN** user switches back to Movies tab
+- **THEN** previously loaded 20 movies are displayed immediately (cached state restored)
+
+#### Scenario: Anime filtering with specific TMDB parameters
+- **GIVEN** user switches to Anime tab
+- **WHEN** API route fetches anime content
+- **THEN** request uses `/discover/movie` with `with_genres=16`, `region=JP`, `with_original_language=ja`, `sort_by=popularity.desc`, `vote_count.gte=100`
 
 ## MODIFIED Requirements
 

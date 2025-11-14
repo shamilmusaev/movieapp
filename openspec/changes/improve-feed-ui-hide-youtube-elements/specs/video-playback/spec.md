@@ -3,17 +3,17 @@
 ## MODIFIED Requirements
 
 ### Requirement: YouTube Iframe Embedding
-The system SHALL embed YouTube trailers using iframe with proper parameters to hide YouTube branding and UI elements, providing an immersive native app experience.
+The system SHALL embed YouTube trailers using iframe with CSS overlay blocks to hide YouTube branding and UI elements (Note: showinfo=0 parameter is removed by YouTube and no longer works), providing an immersive native app experience.
 
 #### Scenario: Hide YouTube title and branding
 - **GIVEN** YouTube iframe is embedded in feed
 - **WHEN** video loads and plays
 - **THEN** YouTube title bar, channel icon, "Copy link" button, and video counter are not visible to user
 
-#### Scenario: Cover YouTube UI with CSS overlays
-- **GIVEN** YouTube iframe may show UI elements
+#### Scenario: Cover YouTube UI with corner block overlays
+- **GIVEN** YouTube iframe shows UI elements in all four corners
 - **WHEN** rendering iframe
-- **THEN** system adds CSS overlay divs covering top 60px (title area) and bottom 50px (controls area)
+- **THEN** system adds 4 CSS overlay blocks: top-left (200px × 70px), top-right (200px × 70px), bottom-left (full width × 50px), bottom-right (covered by bottom)
 
 #### Scenario: Maintain touch interactivity through overlays
 - **GIVEN** CSS overlays are positioned over iframe

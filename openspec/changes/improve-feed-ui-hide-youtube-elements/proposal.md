@@ -23,11 +23,11 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 - Default to "Movies" tab on first visit
 
 ### Technical Implementation
-- Use YouTube iframe API parameter `showinfo=0` (deprecated but still works) and cover approach
-- Add CSS overlay to cover YouTube UI chrome at top and bottom
+- **YouTube UI hiding:** CSS overlay strategy with corner blocks (showinfo=0 parameter is removed by YouTube and no longer works)
+- **Feed state structure:** `Record<FeedContentType, FeedState>` to maintain independent pagination per content type
 - Create new `FeedTypeSelector` component for tab navigation
 - Update API route to accept `media_type` parameter (movie, tv, anime)
-- Map anime to TMDB `animation` genre + specific filters
+- Anime filtering via `/discover/movie` with `with_genres=16`, `region=JP`, `with_original_language=ja`, and separate trailer fetching (append_to_response not supported on discover)
 
 ## Impact
 
@@ -51,19 +51,37 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 ## Notes
 
 **YouTube UI Hiding Strategy:**
-- Use combination of iframe parameters and CSS overlays
-- `controls=0` hides player controls but not title/branding
-- CSS absolute positioned divs cover top 60px and bottom 40px
-- `pointer-events: none` on overlays to allow swipe gestures
-- Test on mobile Safari and Chrome Android for consistency
+- **Critical:** `showinfo=0` parameter is REMOVED by YouTube and does NOT work
+- Use `controls=0` to hide player controls, but this does NOT hide title/branding
+- Implement CSS overlay with 4 corner blocks:
+  - Top-left block: 200px × 70px (covers channel avatar, title start)
+  - Top-right block: 200px × 70px (covers "Copy link", "1/1" counter)
+  - Bottom-left block: full width × 50px (covers progress bar)
+  - Bottom-right block: handled by bottom overlay
+- All overlays use `pointer-events: none` to allow swipe gestures
+- Use `bg-black` or `bg-gradient-to-center` for smooth masking
+- Test on mobile Safari and Chrome Android for consistency (UI elements may shift)
 
 **Content Types:**
 - **Movies:** TMDB `/trending/movie/day` (existing)
 - **TV Shows:** TMDB `/trending/tv/day`
-- **Anime:** TMDB `/discover/movie` with genre filter for Animation + specific keywords/regions (Japan, etc.)
+- **Anime:** TMDB `/discover/movie` with parameters:
+  - `with_genres=16` (Animation genre ID)
+  - `region=JP` (Japan region)
+  - `with_original_language=ja` (Japanese language)
+  - `sort_by=popularity.desc` (sort by popularity)
+  - `vote_count.gte=100` (minimum vote threshold for quality)
+  - **Note:** `/discover` does NOT support `append_to_response=videos`, so trailer fetching requires separate `/movie/{id}/videos` calls per anime movie
+
+**Feed State Structure:**
+- Maintain `Record<FeedContentType, FeedState>` mapping each content type to its own state
+- Each `FeedState` contains: `movies`, `page`, `hasMore`, `viewedMovieIds`, `loading`, `error`
+- When switching tabs: restore previous state if exists, or initialize new state
+- Cache loaded content to avoid re-fetching when returning to previously viewed tab
+- Independent pagination per content type (scrolling in Movies doesn't affect TV Shows page)
 
 **Future Enhancements (not in this change):**
-- Persistent tab preference across sessions (localStorage)
+- Persistent tab preference across sessions (localStorage - currently sessionStorage only)
 - Smooth transition animation when switching tabs
-- Separate pagination state per tab
+- Prefetch next tab content on hover
 - Mix content types in single feed

@@ -1,19 +1,25 @@
 # Implementation Tasks
 
-## 1. YouTube UI Hiding Enhancements
-- [ ] 1.1 Update `YouTubePlayer.tsx`: Increase top overlay height to 70px (covers title bar fully)
-- [ ] 1.2 Update `YouTubePlayer.tsx`: Increase bottom overlay height to 50px (covers controls bar)
-- [ ] 1.3 Add absolute positioned overlay divs with `bg-black` or `bg-gradient-to-b from-black` for smooth masking
-- [ ] 1.4 Ensure overlays have `pointer-events: none` to allow swipe/tap gestures
-- [ ] 1.5 Test on Chrome, Safari, and mobile browsers to verify YouTube UI is fully hidden
-- [ ] 1.6 Add z-index management to ensure overlays are above iframe but below VideoOverlay content
+## 1. YouTube UI Hiding Enhancements with Corner Blocks
+- [ ] 1.1 **Critical:** Remove any reliance on `showinfo=0` parameter (removed by YouTube, does NOT work)
+- [ ] 1.2 Update `YouTubePlayer.tsx`: Add top-left overlay block (200px width × 70px height) to cover channel avatar and title start
+- [ ] 1.3 Update `YouTubePlayer.tsx`: Add top-right overlay block (200px width × 70px height) to cover "Copy link" and "1/1" counter
+- [ ] 1.4 Update `YouTubePlayer.tsx`: Add bottom overlay (full width × 50px height) to cover progress bar
+- [ ] 1.5 Position overlays with `absolute`, use `bg-black` or `bg-gradient-to-center from-black` for smooth masking
+- [ ] 1.6 Ensure ALL overlays have `pointer-events: none` to allow swipe/tap gestures through them
+- [ ] 1.7 Add z-index management: overlays above iframe but below VideoOverlay content
+- [ ] 1.8 Test on Chrome, Safari, mobile Safari (iOS), Chrome Android to verify ALL YouTube UI elements hidden
+- [ ] 1.9 Test different aspect ratios (16:9, 4:3, portrait) to ensure corner blocks adapt correctly
 
-## 2. Content Type System Setup
-- [ ] 2.1 Create `FeedContentType` enum in `/types/feed.types.ts` with values: 'movie', 'tv', 'anime'
-- [ ] 2.2 Add `contentType` field to `FeedState` type
-- [ ] 2.3 Add `contentType` parameter to `useFeedData` hook
-- [ ] 2.4 Update `useFeedData` to reset pagination when `contentType` changes
-- [ ] 2.5 Add session storage utility to persist selected tab: `getSelectedContentType()`, `setSelectedContentType()`
+## 2. Content Type System Setup with Independent State Structure
+- [ ] 2.1 Create `FeedContentType` type in `/types/feed.types.ts`: `'movie' | 'tv' | 'anime'`
+- [ ] 2.2 Create `FeedStateMap` type: `Record<FeedContentType, FeedState>`
+- [ ] 2.3 Update `FeedState` to include: `movies`, `page`, `hasMore`, `viewedMovieIds`, `loading`, `error`
+- [ ] 2.4 Refactor `useFeedData` to maintain `feedStateMap: Record<FeedContentType, FeedState>`
+- [ ] 2.5 Implement state initialization: create empty FeedState when switching to new content type
+- [ ] 2.6 Implement state restoration: retrieve cached FeedState when returning to previously viewed content type
+- [ ] 2.7 Add session storage utility: `getSelectedContentType()`, `setSelectedContentType()`
+- [ ] 2.8 Ensure independent pagination: scrolling in Movies doesn't affect TV Shows page counter
 
 ## 3. FeedTypeSelector Component
 - [ ] 3.1 Create `/components/feed/FeedTypeSelector.tsx` component
@@ -34,13 +40,22 @@
 - [ ] 4.6 Handle tab change: update state, save to session storage, trigger feed reload
 - [ ] 4.7 Adjust `FeedContainer` height: `h-[calc(100vh-60px)]` to account for tab bar
 
-## 5. API Route Updates
-- [ ] 5.1 Update `/app/api/feed/trending/route.ts` to accept `media_type` query parameter
+## 5. API Route Updates with Anime Discover Endpoint
+- [ ] 5.1 Update `/app/api/feed/trending/route.ts` to accept `media_type` query parameter ('movie' | 'tv' | 'anime')
 - [ ] 5.2 Map content types: 'movie' → `/trending/movie/day`, 'tv' → `/trending/tv/day`
-- [ ] 5.3 For 'anime': Use `/discover/movie` with genre filter (Animation=16) and region=JP
-- [ ] 5.4 Add error handling for invalid media_type parameter
-- [ ] 5.5 Update TypeScript types for request parameters
-- [ ] 5.6 Test API route with all three content types: `/api/feed/trending?media_type=movie|tv|anime`
+- [ ] 5.3 For 'anime': Use TMDB `/discover/movie` with parameters:
+  - [ ] 5.3a `with_genres=16` (Animation genre)
+  - [ ] 5.3b `region=JP` (Japan region)
+  - [ ] 5.3c `with_original_language=ja` (Japanese language)
+  - [ ] 5.3d `sort_by=popularity.desc` (sort by popularity)
+  - [ ] 5.3e `vote_count.gte=100` (minimum 100 votes for quality)
+- [ ] 5.4 **Critical:** For anime, `/discover` does NOT support `append_to_response=videos`
+  - [ ] 5.4a Fetch anime movie list from `/discover/movie`
+  - [ ] 5.4b Make separate parallel requests to `/movie/{id}/videos` for each anime movie
+  - [ ] 5.4c Aggregate results before returning to client
+- [ ] 5.5 Add error handling for invalid media_type parameter
+- [ ] 5.6 Update TypeScript types for request parameters and response
+- [ ] 5.7 Test API route: `/api/feed/trending?media_type=movie`, `?media_type=tv`, `?media_type=anime`
 
 ## 6. Hook Updates
 - [ ] 6.1 Update `useFeedData` hook signature to accept `contentType: FeedContentType`
@@ -50,12 +65,19 @@
 - [ ] 6.5 Maintain separate pagination state per content type (optional, or reset to page 1)
 - [ ] 6.6 Update loading state management for content type switches
 
-## 7. TMDB Integration for TV and Anime
-- [ ] 7.1 Verify TMDB `/trending/tv/day` endpoint returns trailers in video data
-- [ ] 7.2 Create utility function `getAnimeMovies()` in `/lib/api/tmdb/movies.ts`
-- [ ] 7.3 Implement anime filtering: Animation genre + Japan region + high vote count
-- [ ] 7.4 Test trailer extraction for TV shows (teasers, trailers, clips)
-- [ ] 7.5 Handle missing trailers for TV content (may be less common than movies)
+## 7. TMDB Integration for TV and Anime with Discover
+- [ ] 7.1 Verify TMDB `/trending/tv/day` endpoint structure (may have different fields than movies)
+- [ ] 7.2 Create utility function `discoverAnimeMovies(page: number)` in `/lib/api/tmdb/movies.ts`
+  - [ ] 7.2a Use `/discover/movie` endpoint with anime-specific filters
+  - [ ] 7.2b Return movie list (without videos, since append_to_response not supported)
+- [ ] 7.3 Create utility function `fetchMoviesWithVideos(movieIds: number[])` for batch video fetching
+  - [ ] 7.3a Accept array of movie IDs
+  - [ ] 7.3b Make parallel requests to `/movie/{id}/videos` for each ID
+  - [ ] 7.3c Use Promise.allSettled to handle partial failures
+  - [ ] 7.3d Return array of movies with extracted trailers
+- [ ] 7.4 Test trailer extraction for TV shows (may use 'Teaser' or 'Clip' type instead of 'Trailer')
+- [ ] 7.5 Handle missing trailers for TV and anime content (show poster fallback)
+- [ ] 7.6 Verify anime results return Japanese animated content (not Western animation)
 
 ## 8. Styling and UX Polish
 - [ ] 8.1 Design tab bar styling: glassmorphism effect with `backdrop-blur-md` and `bg-black/80`
