@@ -49,9 +49,9 @@ function FeedContainerComponent({
         setCurrentIndex(index);
         setActiveVideoId(movies[index]?.id ?? null);
 
-        // Trigger prefetch when 5 videos from end for smoother experience
-        if (hasMore && !loading && index >= movies.length - 5) {
-          console.log('🔄 Prefetching next page (5 videos from end)');
+        // Trigger prefetch when 10 videos from end for smoother experience
+        if (hasMore && !loading && index >= movies.length - 10) {
+          console.log('🔄 Prefetching next page (10 videos from end)');
           onLoadMore();
         }
       }
@@ -141,6 +141,7 @@ function FeedContainerComponent({
             movie={movie}
             isActive={movie.id === activeVideoId}
             autoplay={index === 0} // Только первое видео должно автовоспроизводиться
+            index={index}
             onVisibilityChange={handleVisibilityChange(index)}
             onMovieClick={onMovieClick}
           />

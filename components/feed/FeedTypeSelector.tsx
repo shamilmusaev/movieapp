@@ -6,6 +6,7 @@
  */
 
 import { memo, useState, useEffect, useRef } from 'react';
+import { Film, Tv, Sparkles } from 'lucide-react';
 import type { FeedContentType } from '@/types/feed.types';
 
 interface FeedTypeSelectorProps {
@@ -27,10 +28,11 @@ const CONTENT_TYPES: Array<{
   type: FeedContentType;
   label: string;
   ariaLabel: string;
+  icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { type: 'movie', label: 'Movies', ariaLabel: 'Browse movies' },
-  { type: 'tv', label: 'TV Shows', ariaLabel: 'Browse TV shows' },
-  { type: 'anime', label: 'Anime', ariaLabel: 'Browse anime' },
+  { type: 'movie', label: 'Movies', ariaLabel: 'Browse movies', icon: Film },
+  { type: 'tv', label: 'TV Shows', ariaLabel: 'Browse TV shows', icon: Tv },
+  { type: 'anime', label: 'Anime', ariaLabel: 'Browse anime', icon: Sparkles },
 ];
 
 /**
@@ -87,16 +89,16 @@ function FeedTypeSelectorComponent({
   }, [focusedIndex]);
 
   return (
-    <div className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur-md border-b border-white/10">
-      <div className="flex items-center justify-center px-4 py-3">
-        <nav 
+    <div className="sticky top-0 z-50 w-full bg-black/20 backdrop-blur-md border-b border-white/10">
+      <div className="flex items-center justify-center px-4 py-2 md:py-3">
+        <nav
           ref={navRef}
           className="flex items-center gap-1 bg-white/5 rounded-lg p-1"
           role="tablist"
           aria-label="Content type"
           onKeyDown={handleKeyDown}
         >
-          {CONTENT_TYPES.map(({ type, label, ariaLabel }) => (
+          {CONTENT_TYPES.map(({ type, label, ariaLabel, icon: Icon }) => (
             <button
               key={type}
               type="button"
@@ -106,15 +108,17 @@ function FeedTypeSelectorComponent({
               aria-label={ariaLabel}
               onClick={() => onTypeChange(type)}
               className={`
-                relative px-6 py-2.5 text-sm font-medium rounded-md transition-all duration-200
+                relative flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-2.5
+                text-xs md:text-sm font-medium rounded-md transition-all duration-200
                 ${selectedType === type
                   ? 'text-white bg-white/20 shadow-sm'
-                  : 'text-gray-400 hover:text-white hover:bg-white/10'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }
               `}
             >
-              {label}
-              
+              <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span>{label}</span>
+
               {/* Active indicator */}
               {selectedType === type && (
                 <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-white rounded-full" />

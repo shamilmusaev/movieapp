@@ -17,6 +17,7 @@ interface VideoCardProps {
   movie: MovieWithTrailer;
   isActive: boolean;
   autoplay?: boolean;
+  index?: number;
   onVisibilityChange?: (visible: boolean) => void;
   onMovieClick?: (movie: MovieWithTrailer) => void;
 }
@@ -29,6 +30,7 @@ function VideoCardComponent({
   movie,
   isActive,
   autoplay = false,
+  index = 0,
   onVisibilityChange,
   onMovieClick,
 }: VideoCardProps) {
@@ -41,7 +43,7 @@ function VideoCardComponent({
   // Track visibility with Intersection Observer
   const { ref } = useVideoIntersection({
     threshold: 0.5,
-    rootMargin: '100px', // Start loading slightly before visible
+    rootMargin: '200px', // Start loading earlier for smoother experience
     onVisibilityChange: (visible, ratio) => {
       console.log('👁️ Visibility changed for', movie.title, '- visible:', visible, 'ratio:', ratio);
       onVisibilityChange?.(visible);
@@ -54,6 +56,9 @@ function VideoCardComponent({
 
   const posterUrl = computeTMDBImageUrl(movie.poster_path, 'w780');
   const backdropUrl = computeTMDBImageUrl(movie.backdrop_path, 'w1280');
+
+  // Prioritize loading first 3 images for better LCP
+  const shouldPrioritize = index < 3;
 
   // If movie has trailer, show video player
   if (movie.trailerId) {
@@ -95,7 +100,7 @@ function VideoCardComponent({
             alt=""
             fill
             className="object-cover opacity-40 blur-sm"
-            priority={isActive}
+            priority={shouldPrioritize}
           />
         </div>
       )}
@@ -109,7 +114,7 @@ function VideoCardComponent({
               alt={movie.title}
               fill
               className="object-cover"
-              priority={isActive}
+              priority={shouldPrioritize}
             />
           </div>
         ) : (

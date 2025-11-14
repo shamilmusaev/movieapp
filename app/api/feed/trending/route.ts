@@ -153,10 +153,10 @@ export async function GET(request: NextRequest) {
           // 3. Limit to 20 movies per page
           const moviesToProcess = trendingResponse.results.slice(0, 20);
           const allMovies: FeedMovie[] = [];
-          
-          // 4. Process priority movies (first 8) immediately
-          const priorityMovies = moviesToProcess.slice(0, 8);
-          const remainingMovies = moviesToProcess.slice(8);
+
+          // 4. Process priority movies (first 14) immediately for faster initial load
+          const priorityMovies = moviesToProcess.slice(0, 14);
+          const remainingMovies = moviesToProcess.slice(14);
           
           controller.enqueue(encoder.encode('data: {"status":"processing_priority","count":' + priorityMovies.length + '}\n\n'));
 
@@ -206,9 +206,9 @@ export async function GET(request: NextRequest) {
           allMovies.push(...processedPriorityMovies);
           controller.enqueue(encoder.encode('data: {"status":"priority_complete","count":' + processedPriorityMovies.length + '}\n\n'));
 
-          // 5. Process remaining movies in smaller batches
+          // 5. Process remaining movies in larger batches for faster loading
           if (remainingMovies.length > 0) {
-            const batchSize = 4;
+            const batchSize = 8;
             controller.enqueue(encoder.encode('data: {"status":"processing_background","count":' + remainingMovies.length + '}\n\n'));
 
             for (let i = 0; i < remainingMovies.length; i += batchSize) {

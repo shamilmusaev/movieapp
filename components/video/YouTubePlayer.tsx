@@ -98,22 +98,18 @@ function YouTubePlayerComponent({
     return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
-  // Control playback based on isActive
+  // Control playback based on isActive with retry mechanism
   useEffect(() => {
     if (!iframeRef.current || !isLoaded) return;
 
     console.log('▶️ YouTube playback control - isActive:', isActive, 'isPlaying:', isPlaying, 'videoId:', videoId);
 
-    // Small delay to ensure YouTube API is ready
-    const timer = setTimeout(() => {
+    const sendCommand = (command: string, attempt: number = 1) => {
       try {
         const iframe = iframeRef.current;
         if (!iframe) return;
 
-        // Play if active and playing state is true, otherwise pause
-        const command = isActive && isPlaying ? 'playVideo' : 'pauseVideo';
-
-        console.log('📡 Sending command to YouTube:', command);
+        console.log(`📡 Sending command to YouTube (attempt ${attempt}):`, command);
 
         iframe.contentWindow?.postMessage(
           JSON.stringify({
@@ -123,10 +119,23 @@ function YouTubePlayerComponent({
           }),
           '*'
         );
+
+        // Retry up to 3 times with increasing delays for better reliability
+        if (command === 'playVideo' && attempt < 3) {
+          setTimeout(() => sendCommand(command, attempt + 1), attempt * 500);
+        }
       } catch (error) {
         console.warn('Failed to control YouTube player:', error);
       }
-    }, 100);
+    };
+
+    // Play if active and playing state is true, otherwise pause
+    const command = isActive && isPlaying ? 'playVideo' : 'pauseVideo';
+
+    // Longer initial delay to ensure YouTube API is fully ready
+    const timer = setTimeout(() => {
+      sendCommand(command);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [isActive, isPlaying, videoId, isLoaded]);
@@ -137,7 +146,7 @@ function YouTubePlayerComponent({
 
     console.log('🔊 YouTube mute control - externalIsMuted:', externalIsMuted, 'videoId:', videoId);
 
-    // Small delay to ensure YouTube API is ready
+    // Longer delay to ensure YouTube API is ready
     const timer = setTimeout(() => {
       try {
         const iframe = iframeRef.current;
@@ -159,7 +168,7 @@ function YouTubePlayerComponent({
       } catch (error) {
         console.warn('Failed to control YouTube mute state:', error);
       }
-    }, 100);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [externalIsMuted, videoId, isLoaded]);
