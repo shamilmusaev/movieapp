@@ -2,7 +2,7 @@
 
 ## MODIFIED Requirements
 
-### Requirement: YouTube Iframe Embedding
+### Requirement: YouTube Embed Player
 The system SHALL embed YouTube trailers using iframe with CSS overlay blocks to hide YouTube branding and UI elements (all iframe parameters for hiding branding are deprecated by YouTube; only physical overlays work), providing an immersive native app experience.
 
 #### Scenario: Hide YouTube title and branding

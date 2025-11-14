@@ -4,22 +4,27 @@
 TBD - created by archiving change add-vertical-video-feed. Update Purpose after archive.
 ## Requirements
 ### Requirement: Vertical Feed Layout
-The system SHALL provide a mobile-first vertical scrolling feed that displays one full-screen video card at a time, optimized for touch interactions and portrait orientation.
+The system SHALL provide a full-screen vertical scrolling container that displays video cards with content type navigation at the top.
 
-#### Scenario: User opens feed on mobile device
-- **GIVEN** a user navigates to the feed page on a mobile device
-- **WHEN** the page loads
-- **THEN** a full-screen vertical video card is displayed taking up the entire viewport height
+#### Scenario: Tab bar positioned at top of feed
+- **GIVEN** feed page is displayed
+- **WHEN** user views screen
+- **THEN** content type tabs are fixed at the top, above video cards
 
-#### Scenario: User scrolls to next video
-- **GIVEN** a user is viewing a video in the feed
-- **WHEN** they swipe up or click the next button
-- **THEN** the feed smoothly scrolls to the next video card with animation
+#### Scenario: Video cards fill screen below tabs
+- **GIVEN** tabs are displayed at top
+- **WHEN** rendering video cards
+- **THEN** each card fills remaining screen height (100vh minus tab bar height)
 
-#### Scenario: Desktop user accesses feed
-- **GIVEN** a user opens the feed on desktop
-- **WHEN** the page renders
-- **THEN** the video feed is centered with max-width constraint, maintaining mobile-first aspect ratio
+#### Scenario: Tab bar remains visible during scroll
+- **GIVEN** user is scrolling through feed
+- **WHEN** swiping between videos
+- **THEN** tab bar remains fixed at top (does not scroll away)
+
+#### Scenario: Smooth transition when switching tabs
+- **GIVEN** user taps a different content type tab
+- **WHEN** feed content changes
+- **THEN** old content fades out and new content fades in smoothly
 
 ### Requirement: Video Card Component
 The system SHALL display each movie as a video card containing an embedded trailer player, movie metadata overlay, and interactive controls.
@@ -128,4 +133,37 @@ The system SHALL adapt the feed layout to different screen sizes while maintaini
 - **GIVEN** viewport width > 1024px
 - **WHEN** feed renders
 - **THEN** video is centered with max-width 480px (mobile aspect ratio) and rest of screen has background
+
+### Requirement: Mobile Safe Area and Browser UI Handling
+The system SHALL ensure all interactive UI elements (action buttons, movie info) are positioned above mobile browser controls and iOS safe areas, preventing overlap and ensuring accessibility.
+
+#### Scenario: Use CSS safe-area-inset for iOS devices
+- **GIVEN** app runs on iOS device with home indicator
+- **WHEN** rendering bottom UI elements
+- **THEN** system applies `padding-bottom: max(2rem, calc(2rem + env(safe-area-inset-bottom)))` to clear 34px iOS home bar
+
+#### Scenario: Clear Safari bottom toolbar on iOS
+- **GIVEN** user scrolls feed in iOS Safari with visible bottom toolbar (~60px)
+- **WHEN** action buttons (Like, Save, Share) are displayed
+- **THEN** buttons are positioned with sufficient padding to remain fully visible above toolbar
+
+#### Scenario: Clear Chrome Android address bar
+- **GIVEN** user views feed in Chrome Android with visible address bar
+- **WHEN** movie title and info are displayed at bottom
+- **THEN** content is positioned with 80px bottom padding to clear browser chrome
+
+#### Scenario: Adapt to landscape orientation safe areas
+- **GIVEN** device rotates to landscape mode
+- **WHEN** safe-area-inset values change (sides instead of bottom)
+- **THEN** UI layout adapts using `env(safe-area-inset-left)` and `env(safe-area-inset-right)`
+
+#### Scenario: Fallback for browsers without safe-area support
+- **GIVEN** browser does not support env(safe-area-inset-*)
+- **WHEN** applying bottom padding
+- **THEN** system uses fixed 80px padding as fallback
+
+#### Scenario: Enable safe-area-inset with viewport meta tag
+- **GIVEN** app HTML document
+- **WHEN** page loads
+- **THEN** viewport meta tag includes `viewport-fit=cover` to enable safe-area-inset API
 

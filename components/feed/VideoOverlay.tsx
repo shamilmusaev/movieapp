@@ -35,11 +35,23 @@ function VideoOverlayComponent({
 
   // Get primary genre
   const primaryGenre = movie.genresDisplay?.[0] || 'Movie';
+  
+  // Check if this is a TV show
+  const isTVShow = !!movie.first_air_date;
+
+  // Get year or TV show label
+  const yearLabel = isTVShow ? 'TV Series' : (movie.release_date
+    ? new Date(movie.release_date).getFullYear()
+    : '2024');
 
   return (
     <div className="absolute inset-0 pointer-events-none">
       {/* Strong bottom gradient for text readability */}
-      <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black via-black/70 to-transparent" />
+      <div className={`absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t ${
+        isTVShow 
+          ? 'from-black via-purple-900/50 to-transparent' 
+          : 'from-black via-black/70 to-transparent'
+      }`} />
 
       {/* Right side action buttons */}
       <div className="absolute right-4 bottom-[max(8rem,calc(8rem+env(safe-area-inset-bottom)))] flex flex-col gap-6 pointer-events-auto z-10">
@@ -170,21 +182,48 @@ function VideoOverlayComponent({
       {/* Bottom content */}
       <div className="absolute bottom-0 left-0 right-0 p-6 pb-[max(2rem,calc(2rem+env(safe-area-inset-bottom)))] pointer-events-auto">
         <div className="max-w-xl">
-          {/* Movie Title */}
-          <h1
-            className="text-white text-3xl font-bold mb-2 leading-tight drop-shadow-lg cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={onMovieClick}
-          >
-            {movie.title}
-          </h1>
+          {/* Movie/TV Show Title with icon */}
+          <div className="flex items-center gap-3 mb-2">
+            {isTVShow && (
+              <div className="w-8 h-8 rounded-full bg-purple-500/20 backdrop-blur-sm flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-purple-300"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+            )}
+            <h1
+              className={`text-3xl font-bold leading-tight drop-shadow-lg cursor-pointer hover:opacity-80 transition-opacity ${
+                isTVShow ? 'text-purple-100' : 'text-white'
+              }`}
+              onClick={onMovieClick}
+            >
+              {movie.title}
+            </h1>
+          </div>
 
           {/* Genre and Year */}
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-gray-200 text-sm font-medium">
+            <span className={`text-sm font-medium ${
+              isTVShow ? 'text-purple-200' : 'text-gray-200'
+            }`}>
               {primaryGenre}
             </span>
             <span className="text-gray-400 text-sm">•</span>
-            <span className="text-gray-200 text-sm">{year}</span>
+            <span className={`text-sm ${
+              isTVShow ? 'text-purple-200' : 'text-gray-200'
+            }`}>
+              {yearLabel}
+            </span>
           </div>
 
           {/* Genre Chips */}

@@ -205,43 +205,41 @@ function YouTubePlayerComponent({
         </div>
       )}
 
-      {/* YouTube iframe - only render when active for true autoplay */}
-      {isActive && (
-        <>
-          <iframe
-            ref={iframeRef}
-            src={buildIframeUrl(videoId)}
-            title="YouTube video player"
-            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-            allowFullScreen
-            onLoad={handleLoad}
-            onError={handleError}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ border: 'none' }}
-          />
+      {/* YouTube iframe - always render but control play/pause via postMessage */}
+      <iframe
+        ref={iframeRef}
+        src={buildIframeUrl(videoId)}
+        title="YouTube video player"
+        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+        allowFullScreen
+        onLoad={handleLoad}
+        onError={handleError}
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ border: 'none' }}
+      />
 
-          {/* Overlay to hide YouTube UI elements with corner blocks */}
-          <div className="absolute inset-0 pointer-events-none z-10">
-            {/* Top-left corner block - covers channel avatar and title start */}
-            <div 
-              className="absolute top-0 left-0 w-[200px] h-[70px] bg-gradient-to-r from-black via-black/95 to-transparent"
-              aria-hidden="true"
-            />
-            
-            {/* Top-right corner block - covers "Copy link" button and "1/1" counter */}
-            <div 
-              className="absolute top-0 right-0 w-[200px] h-[70px] bg-gradient-to-l from-black via-black/95 to-transparent"
-              aria-hidden="true"
-            />
-            
-            {/* Bottom overlay - covers progress bar and remaining controls */}
-            <div 
-              className="absolute bottom-0 left-0 right-0 h-[50px] bg-gradient-to-t from-black via-black/90 to-transparent"
-              aria-hidden="true"
-            />
-          </div>
-        </>
-      )}
+      {/* Overlay to hide YouTube UI elements with corner blocks */}
+      <div className={`absolute inset-0 pointer-events-none z-10 transition-opacity duration-300 ${
+        isActive ? 'opacity-100' : 'opacity-0'
+      }`}>
+        {/* Top-left corner block - covers channel avatar and title start */}
+        <div 
+          className="absolute top-0 left-0 w-[200px] h-[70px] bg-gradient-to-r from-black via-black/95 to-transparent"
+          aria-hidden="true"
+        />
+        
+        {/* Top-right corner block - covers "Copy link" button and "1/1" counter */}
+        <div 
+          className="absolute top-0 right-0 w-[200px] h-[70px] bg-gradient-to-l from-black via-black/95 to-transparent"
+          aria-hidden="true"
+        />
+        
+        {/* Bottom overlay - covers progress bar and remaining controls */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-[50px] bg-gradient-to-t from-black via-black/90 to-transparent"
+          aria-hidden="true"
+        />
+      </div>
     </div>
   );
 }

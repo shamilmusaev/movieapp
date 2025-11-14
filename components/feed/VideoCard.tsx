@@ -16,6 +16,7 @@ import Image from 'next/image';
 interface VideoCardProps {
   movie: MovieWithTrailer;
   isActive: boolean;
+  autoplay?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   onMovieClick?: (movie: MovieWithTrailer) => void;
 }
@@ -27,12 +28,14 @@ interface VideoCardProps {
 function VideoCardComponent({
   movie,
   isActive,
+  autoplay = false,
   onVisibilityChange,
   onMovieClick,
 }: VideoCardProps) {
   const { isMuted, toggleMute } = useVideoPlayer({
     videoId: movie.trailerId || '',
-    autoplay: isActive,
+    autoplay,
+    globalAutoplay: autoplay && isActive,
   });
 
   // Track visibility with Intersection Observer

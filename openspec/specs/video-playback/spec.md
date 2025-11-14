@@ -4,22 +4,32 @@
 TBD - created by archiving change add-vertical-video-feed. Update Purpose after archive.
 ## Requirements
 ### Requirement: YouTube Embed Player
-The system SHALL embed YouTube trailers using iframe with appropriate configuration for autoplay, muting, and controls.
+The system SHALL embed YouTube trailers using iframe with CSS overlay blocks to hide YouTube branding and UI elements (all iframe parameters for hiding branding are deprecated by YouTube; only physical overlays work), providing an immersive native app experience.
 
-#### Scenario: Embed YouTube video with trailer key
-- **GIVEN** a movie has trailer_key "abc123XYZ"
-- **WHEN** the video card is rendered
-- **THEN** an iframe with src `https://www.youtube.com/embed/abc123XYZ` is created
+#### Scenario: Hide YouTube title and branding
+- **GIVEN** YouTube iframe is embedded in feed
+- **WHEN** video loads and plays
+- **THEN** YouTube title bar, channel icon, "Copy link" button, and video counter are not visible to user
 
-#### Scenario: Configure iframe for autoplay
-- **GIVEN** a YouTube iframe is created
-- **WHEN** setting iframe parameters
-- **THEN** URL includes `?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0`
+#### Scenario: Cover YouTube UI with corner block overlays
+- **GIVEN** YouTube iframe shows UI elements in all four corners
+- **WHEN** rendering iframe
+- **THEN** system adds 4 CSS overlay blocks: top-left (200px × 70px), top-right (200px × 70px), bottom-left (full width × 50px), bottom-right (covered by bottom)
 
-#### Scenario: Responsive iframe sizing
-- **GIVEN** a video player is embedded
-- **WHEN** the viewport size changes
-- **THEN** the iframe maintains 16:9 aspect ratio and scales to fit container
+#### Scenario: Maintain touch interactivity through overlays
+- **GIVEN** CSS overlays are positioned over iframe
+- **WHEN** user swipes or taps on video
+- **THEN** touch events pass through overlays (pointer-events: none) for gesture control
+
+#### Scenario: YouTube controls remain hidden
+- **GIVEN** video is playing
+- **WHEN** user taps or interacts with video area
+- **THEN** YouTube native controls (play/pause overlay, progress bar) do not appear
+
+#### Scenario: Fullscreen button is disabled
+- **GIVEN** YouTube player is embedded
+- **WHEN** video loads
+- **THEN** fullscreen button is not visible or functional (fs=0 parameter)
 
 ### Requirement: Single Active Player
 The system SHALL ensure only one video player is actively playing at any time to optimize performance and user experience.

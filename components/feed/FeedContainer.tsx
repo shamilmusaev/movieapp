@@ -140,6 +140,7 @@ function FeedContainerComponent({
             key={movie.id}
             movie={movie}
             isActive={movie.id === activeVideoId}
+            autoplay={index === 0} // Только первое видео должно автовоспроизводиться
             onVisibilityChange={handleVisibilityChange(index)}
             onMovieClick={onMovieClick}
           />

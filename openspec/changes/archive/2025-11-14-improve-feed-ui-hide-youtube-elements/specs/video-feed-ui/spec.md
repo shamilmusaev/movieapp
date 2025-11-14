@@ -130,7 +130,7 @@ The system SHALL ensure all interactive UI elements (action buttons, movie info)
 
 ## MODIFIED Requirements
 
-### Requirement: Feed Container Layout
+### Requirement: Vertical Feed Layout
 The system SHALL provide a full-screen vertical scrolling container that displays video cards with content type navigation at the top.
 
 #### Scenario: Tab bar positioned at top of feed

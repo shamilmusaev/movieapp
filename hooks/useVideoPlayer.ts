@@ -10,6 +10,7 @@ import type { VideoPlayerState } from '@/types/feed.types';
 interface UseVideoPlayerOptions {
   videoId: string;
   autoplay?: boolean;
+  globalAutoplay?: boolean;
   initialMuted?: boolean;
 }
 
@@ -55,10 +56,10 @@ function saveMutePreference(muted: boolean): void {
  * Custom hook for managing video player state
  */
 export function useVideoPlayer(options: UseVideoPlayerOptions): UseVideoPlayerReturn {
-  const { videoId, autoplay = false, initialMuted } = options;
+  const { videoId, autoplay = false, globalAutoplay = false, initialMuted } = options;
 
   const [state, setState] = useState<VideoPlayerState>(() => ({
-    isPlaying: autoplay,
+    isPlaying: globalAutoplay && autoplay,
     isMuted: initialMuted ?? getMutePreference(),
     volume: 1,
     currentTime: 0,
