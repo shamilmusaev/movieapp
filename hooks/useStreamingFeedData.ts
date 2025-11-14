@@ -314,7 +314,7 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
   useEffect(() => {
     cancel();
     
-    // Start streaming for new content type if not loaded yet
+    // Small delay before starting new stream
     setTimeout(() => {
       startStreaming(1);
     }, 100);
@@ -324,19 +324,18 @@ export function useStreamingFeedData(initialContentType: FeedContentType = 'movi
    * Load initial streaming feed
    */
   useEffect(() => {
-    const currentState = allStates[contentType];
-    if (currentState.movies.length === 0) {
+    // Only start streaming if component just mounted (no movies loaded yet)
+    const hasLoadedMovies = Object.values(allStates).some(state => state.movies.length > 0);
+    if (!hasLoadedMovies) {
       startStreaming(1);
     }
-  }, [allStates, contentType, startStreaming]);
+  }, []); // Run only once on mount
 
   /**
    * Cancel streaming connection
    */
   const cancel = useCallback(() => {
 
-    setStreamingStatus('canceled');
-    
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
