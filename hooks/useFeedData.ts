@@ -24,7 +24,7 @@ interface UseFeedDataReturn extends FeedState {
 export function useFeedData(): UseFeedDataReturn {
   const [state, setState] = useState<FeedState>({
     movies: [],
-    loading: true,
+    loading: true, // Loading from the start (genres + movies)
     error: null,
     hasMore: true,
     page: 1,
@@ -224,10 +224,12 @@ export function useFeedData(): UseFeedDataReturn {
 
   // Load initial data when genres are ready
   useEffect(() => {
-    if (genreMap.size > 0 && state.movies.length === 0 && !state.loading) {
+    console.log('🎯 useEffect check - genreMap.size:', genreMap.size, 'movies.length:', state.movies.length);
+    if (genreMap.size > 0 && state.movies.length === 0) {
+      console.log('✨ Conditions met! Calling loadInitial...');
       loadInitial();
     }
-  }, [genreMap.size, state.movies.length, state.loading, loadInitial]);
+  }, [genreMap.size, state.movies.length, loadInitial]);
 
   return {
     ...state,
