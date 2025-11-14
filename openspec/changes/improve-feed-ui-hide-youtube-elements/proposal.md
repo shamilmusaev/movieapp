@@ -15,6 +15,13 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 - Hide "1/1" video counter in top-right corner
 - Ensure YouTube controls remain hidden even when video loads
 
+### Fix Mobile Safe Area and Browser UI Overlap
+- Add CSS safe-area-inset-bottom for iOS home indicator
+- Ensure action buttons (Like, Save, Share) are NOT hidden by Safari/Chrome bottom bar
+- Add dynamic padding based on browser UI visibility
+- Test on iOS Safari with bottom bar visible/hidden
+- Ensure movie title and genre chips are fully visible above browser controls
+
 ### Add Content Type Navigation Tabs
 - Create horizontal tab bar at top of feed with three options: **Movies**, **TV Shows**, **Anime**
 - Highlight active tab with visual indicator (underline or background)
@@ -43,6 +50,9 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 - Create `FeedTypeSelector` component for tab navigation
 - Update `useFeedData` hook to maintain `feedStateMap: Record<FeedContentType, FeedState>`
 - Update API route `/api/feed/trending` to accept `media_type` query parameter
+- Update `VideoOverlay` component to use safe-area-inset-bottom for iOS
+- Add dynamic bottom padding: `pb-[max(2rem,env(safe-area-inset-bottom))]` for action buttons
+- Ensure all bottom UI elements account for 60-80px of browser chrome on mobile
 
 **Anime Content Strategy:**
 - Primary: `/discover/movie` with `with_origin_country=JP`, `with_genres=16` (Animation)
@@ -58,6 +68,7 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 
 - **Affected code:**
   - `components/video/YouTubePlayer.tsx` - Add stronger YouTube UI hiding overlays
+  - `components/feed/VideoOverlay.tsx` - Add safe-area-inset-bottom for mobile browsers
   - `components/feed/FeedTypeSelector.tsx` (new) - Tab navigation component
   - `app/feed/page.tsx` - Integrate FeedTypeSelector, pass content type to useFeedData
   - `hooks/useFeedData.ts` - Accept and use `contentType` parameter
@@ -82,6 +93,18 @@ Additionally, users want to browse different types of content (Movies, TV Shows,
 - Styling: `bg-black` or `bg-gradient-to-center from-black` for smooth edges
 - Test across: Chrome desktop, Safari desktop, iOS Safari, Chrome Android
 - Handle aspect ratio variations (16:9, portrait) - overlays may need responsive sizing
+
+**Mobile Safe Area Implementation:**
+- Use CSS `env(safe-area-inset-bottom)` for iOS home indicator (34px on iPhone X+)
+- Bottom action buttons: add padding `pb-[max(2rem,calc(2rem+env(safe-area-inset-bottom)))]`
+- Movie title/info container: similar bottom padding to clear browser controls (Safari bottom bar ~60px)
+- Add `viewport-fit=cover` in meta tag to enable safe-area-inset
+- Test scenarios:
+  - iOS Safari with bottom bar visible (scrolling)
+  - iOS Safari with bottom bar hidden (after scroll)
+  - Chrome Android with/without address bar
+  - Landscape orientation (safe-area changes)
+- Fallback: if safe-area not supported, use fixed 80px bottom padding
 
 **Anime Filtering Strategy (Multi-Stage):**
 1. **Primary attempt:** `/discover/movie` with:

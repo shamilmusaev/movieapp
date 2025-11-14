@@ -93,29 +93,48 @@
 - [ ] 7.6 Verify anime results return Japanese animated content (validate with sample checks)
 - [ ] 7.7 Test all 4 fallback stages end-to-end with real API calls
 
-## 8. Styling and UX Polish
-- [ ] 8.1 Design tab bar styling: glassmorphism effect with `backdrop-blur-md` and `bg-black/80`
-- [ ] 8.2 Add smooth fade-in animation when feed content loads after tab switch
-- [ ] 8.3 Show brief loading indicator during tab switch (spinner or skeleton)
-- [ ] 8.4 Ensure tab bar text is readable with good contrast
-- [ ] 8.5 Add hover states for tabs on desktop
-- [ ] 8.6 Test tab bar positioning on different screen sizes (mobile, tablet, desktop)
+## 8. Mobile Safe Area and Browser UI Handling
+- [ ] 8.1 Add `viewport-fit=cover` to viewport meta tag in `app/layout.tsx` or `_document.tsx`
+- [ ] 8.2 Update `VideoOverlay.tsx` bottom content container:
+  - [ ] 8.2a Change `pb-8` to `pb-[max(2rem,calc(2rem+env(safe-area-inset-bottom)))]`
+  - [ ] 8.2b Add fallback: if safe-area-inset not supported, use `pb-20` (80px)
+- [ ] 8.3 Update right-side action buttons positioning:
+  - [ ] 8.3a Change `bottom-32` to `bottom-[max(8rem,calc(8rem+env(safe-area-inset-bottom)))]`
+  - [ ] 8.3b Ensure buttons remain above browser chrome (~60-80px clearance)
+- [ ] 8.4 Add landscape orientation safe area handling:
+  - [ ] 8.4a Apply `pl-[env(safe-area-inset-left)]` and `pr-[env(safe-area-inset-right)]` to container
+- [ ] 8.5 Test on iOS Safari (iPhone X, iPhone 14 Pro):
+  - [ ] 8.5a With bottom toolbar visible (initial scroll state)
+  - [ ] 8.5b With bottom toolbar hidden (after scrolling)
+  - [ ] 8.5c In landscape mode
+- [ ] 8.6 Test on Chrome Android:
+  - [ ] 8.6a With address bar visible
+  - [ ] 8.6b With address bar hidden after scroll
+- [ ] 8.7 Verify all interactive elements (buttons, movie title) are tappable and not obscured
 
-## 9. Session Persistence
+## 9. Styling and UX Polish
+- [ ] 9.1 Design tab bar styling: glassmorphism effect with `backdrop-blur-md` and `bg-black/80`
+- [ ] 9.2 Add smooth fade-in animation when feed content loads after tab switch
+- [ ] 9.3 Show brief loading indicator during tab switch (spinner or skeleton)
+- [ ] 9.4 Ensure tab bar text is readable with good contrast
+- [ ] 9.5 Add hover states for tabs on desktop
+- [ ] 9.6 Test tab bar positioning on different screen sizes (mobile, tablet, desktop)
+
+## 10. Session Persistence
 - [ ] 9.1 Create `/lib/utils/session-storage.ts` with type-safe helpers
 - [ ] 9.2 Implement `getContentType()`: read from sessionStorage, default to 'movie'
 - [ ] 9.3 Implement `setContentType(type)`: write to sessionStorage
 - [ ] 9.4 Call `setContentType()` whenever user switches tabs
 - [ ] 9.5 Test persistence: switch tab, refresh page, verify tab remains selected
 
-## 10. Error Handling and Edge Cases
+## 11. Error Handling and Edge Cases
 - [ ] 10.1 Handle empty results for TV or Anime (show appropriate message)
 - [ ] 10.2 Handle API errors specific to TV/Anime endpoints
 - [ ] 10.3 Validate contentType parameter in API route (reject invalid values)
 - [ ] 10.4 Show user-friendly error if content type fails to load
 - [ ] 10.5 Add retry logic for failed content type switches
 
-## 11. Testing
+## 12. Testing
 - [ ] 11.1 Test YouTube UI hiding on Chrome desktop
 - [ ] 11.2 Test YouTube UI hiding on Safari desktop
 - [ ] 11.3 Test YouTube UI hiding on mobile Safari (iOS)
@@ -127,14 +146,14 @@
 - [ ] 11.9 Test pagination: scroll through 20+ items in each content type
 - [ ] 11.10 Verify tab bar remains fixed during vertical scroll
 
-## 12. Performance and Optimization
+## 13. Performance and Optimization
 - [ ] 12.1 Ensure tab switch is instant (<100ms perceived latency)
 - [ ] 12.2 Prefetch first page of next content type on hover (optional)
 - [ ] 12.3 Optimize re-renders: memoize FeedTypeSelector component
 - [ ] 12.4 Test smooth animations on low-end mobile devices
 - [ ] 12.5 Measure memory usage when switching between tabs multiple times
 
-## 13. Documentation and Code Quality
+## 14. Documentation and Code Quality
 - [ ] 13.1 Add JSDoc comments to `FeedTypeSelector` component
 - [ ] 13.2 Document content type filtering logic in API route
 - [ ] 13.3 Add inline comments explaining YouTube UI hiding strategy

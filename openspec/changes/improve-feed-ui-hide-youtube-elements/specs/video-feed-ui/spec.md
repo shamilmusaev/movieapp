@@ -93,6 +93,41 @@ The system SHALL provide horizontal tab navigation at the top of the feed allowi
 - **WHEN** API route needs trailers
 - **THEN** system makes separate parallel `/movie/{id}/videos` requests for each anime movie (discover does not support append_to_response)
 
+## ADDED Requirements
+
+### Requirement: Mobile Safe Area and Browser UI Handling
+The system SHALL ensure all interactive UI elements (action buttons, movie info) are positioned above mobile browser controls and iOS safe areas, preventing overlap and ensuring accessibility.
+
+#### Scenario: Use CSS safe-area-inset for iOS devices
+- **GIVEN** app runs on iOS device with home indicator
+- **WHEN** rendering bottom UI elements
+- **THEN** system applies `padding-bottom: max(2rem, calc(2rem + env(safe-area-inset-bottom)))` to clear 34px iOS home bar
+
+#### Scenario: Clear Safari bottom toolbar on iOS
+- **GIVEN** user scrolls feed in iOS Safari with visible bottom toolbar (~60px)
+- **WHEN** action buttons (Like, Save, Share) are displayed
+- **THEN** buttons are positioned with sufficient padding to remain fully visible above toolbar
+
+#### Scenario: Clear Chrome Android address bar
+- **GIVEN** user views feed in Chrome Android with visible address bar
+- **WHEN** movie title and info are displayed at bottom
+- **THEN** content is positioned with 80px bottom padding to clear browser chrome
+
+#### Scenario: Adapt to landscape orientation safe areas
+- **GIVEN** device rotates to landscape mode
+- **WHEN** safe-area-inset values change (sides instead of bottom)
+- **THEN** UI layout adapts using `env(safe-area-inset-left)` and `env(safe-area-inset-right)`
+
+#### Scenario: Fallback for browsers without safe-area support
+- **GIVEN** browser does not support env(safe-area-inset-*)
+- **WHEN** applying bottom padding
+- **THEN** system uses fixed 80px padding as fallback
+
+#### Scenario: Enable safe-area-inset with viewport meta tag
+- **GIVEN** app HTML document
+- **WHEN** page loads
+- **THEN** viewport meta tag includes `viewport-fit=cover` to enable safe-area-inset API
+
 ## MODIFIED Requirements
 
 ### Requirement: Feed Container Layout
