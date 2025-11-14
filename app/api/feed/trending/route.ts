@@ -7,9 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTrendingMovies, getMovieById } from '@/lib/api/tmdb/movies';
 import { transformMovieForFeedServer } from '@/lib/utils/feed-server';
 import type { FeedApiResponse } from '@/types/api.types';
+import type { FeedMovie } from '@/types/feed.types';
 
-// Enable ISR caching for 1 hour
-export const revalidate = 3600;
+// Enable ISR caching for 30 minutes (shorter for trending content)
+export const revalidate = 1800;
 
 /**
  * GET handler for trending feed data
@@ -83,13 +84,13 @@ export async function GET(request: NextRequest) {
     const priorityResults = await Promise.allSettled(priorityPromises);
     
     // Extract successful priority results
-    const priorityMovies = priorityResults
+    const processedPriorityMovies = priorityResults
       .filter((result): result is PromiseFulfilledResult<any> => 
         result.status === 'fulfilled' && result.value !== null
       )
       .map(result => result.value);
 
-    console.log(`✅ Processed ${priorityMovies.length} priority movies`);
+    console.log(`✅ Processed ${processedPriorityMovies.length} priority movies`);
 
     // Process remaining movies in background batches
     const backgroundMovies: FeedMovie[] = [];
@@ -126,12 +127,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Combine priority and background movies
-    const allMovies = [...priorityMovies, ...backgroundMovies];
+    const allMovies = [...processedPriorityMovies, ...backgroundMovies];
     const movieResults = allMovies.map(movie => ({ status: 'fulfilled' as const, value: movie }));
     
     // 5. Build response with pagination info (all movies already filtered)
     const movies = allMovies;
-    console.log(`✅ Successfully processed ${movies.length} movies (${priorityMovies.length} priority + ${backgroundMovies.length} background)`);
+    console.log(`✅ Successfully processed ${movies.length} movies (${processedPriorityMovies.length} priority + ${backgroundMovies.length} background)`);
 
     // 6. Build response with pagination info
     const response: FeedApiResponse = {

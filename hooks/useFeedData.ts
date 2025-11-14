@@ -67,44 +67,10 @@ export function useFeedData(): UseFeedDataReturn {
     };
   }, []);
 
-  /**
-   * Fetch movies for a specific page from the optimized API
-   */
-  const fetchMovies = useCallback(
-    async (page: number): Promise<MovieWithTrailer[]> => {
-      console.log('📄 fetchMovies called for page:', page);
-      try {
-        // Call our optimized API endpoint that returns pre-processed data
-        console.log('🔎 Calling /api/feed/trending...');
-        const response = await fetch(`/api/feed/trending?page=${page}`);
-        
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
 
-        const data: FeedApiResponse = await response.json();
-        console.log('✅ Got feed data:', data.movies.length);
-
-        // Filter out already viewed movies
-        const newMovies = data.movies.filter(
-          (movie: MovieWithTrailer) => !state.viewedMovieIds.has(movie.id)
-        );
-        console.log('🔢 New movies after filter:', newMovies.length);
-
-        // Update hasMore state from API response for all pages
-        setState(prev => ({ ...prev, hasMore: data.hasMore }));
-
-        return newMovies;
-      } catch (error) {
-        console.error('❌ Failed to fetch movies:', error);
-        throw error;
-      }
-    },
-    [state.viewedMovieIds]
-  );
 
   /**
-   * Load initial feed data without waiting for genres
+   * Load initial feed data with progressive loading
    */
   const loadInitial = useCallback(async () => {
     console.log('🔄 loadInitial called - starting immediately (no genre blocking)');
@@ -113,15 +79,29 @@ export function useFeedData(): UseFeedDataReturn {
 
     try {
       console.log('🎬 Fetching movies...');
-      const movies = await fetchMovies(1);
-      console.log('✅ Movies loaded:', movies.length);
+      
+      // Fetch with progressive loading (priority batch first)
+      const response = await fetch('/api/feed/trending?page=1');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data: FeedApiResponse = await response.json();
+      console.log('✅ Feed loaded:', data.movies.length);
+
+      // Filter out already viewed movies
+      const newMovies = data.movies.filter(
+        (movie: MovieWithTrailer) => !state.viewedMovieIds.has(movie.id)
+      );
+      console.log('🔢 New movies after filter:', newMovies.length);
 
       setState(prev => ({
         ...prev,
-        movies,
+        movies: newMovies,
         loading: false,
         page: 1,
-        viewedMovieIds: new Set(movies.map(m => m.id)),
+        hasMore: data.hasMore,
+        viewedMovieIds: new Set(newMovies.map(m => m.id)),
       }));
     } catch (error) {
       console.error('❌ Error loading feed:', error);
@@ -131,7 +111,7 @@ export function useFeedData(): UseFeedDataReturn {
         error: error instanceof Error ? error.message : 'Failed to load feed',
       }));
     }
-  }, [fetchMovies]);
+  }, [state.viewedMovieIds]);
 
   /**
    * Load more movies (pagination)
@@ -143,7 +123,21 @@ export function useFeedData(): UseFeedDataReturn {
 
     try {
       const nextPage = state.page + 1;
-      const newMovies = await fetchMovies(nextPage);
+      
+      // Direct API call for pagination (progressive loading on server)
+      const response = await fetch(`/api/feed/trending?page=${nextPage}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data: FeedApiResponse = await response.json();
+      console.log('✅ Additional page loaded:', data.movies.length);
+
+      // Filter out already viewed movies
+      const newMovies = data.movies.filter(
+        (movie: MovieWithTrailer) => !state.viewedMovieIds.has(movie.id)
+      );
+      console.log('🔢 New movies after filter:', newMovies.length);
 
       if (newMovies.length === 0) {
         setState(prev => ({
@@ -163,6 +157,7 @@ export function useFeedData(): UseFeedDataReturn {
           movies: [...prev.movies, ...newMovies],
           loading: false,
           page: nextPage,
+          hasMore: data.hasMore,
           viewedMovieIds: updatedViewedIds,
         };
       });
@@ -173,7 +168,7 @@ export function useFeedData(): UseFeedDataReturn {
         error: error instanceof Error ? error.message : 'Failed to load more',
       }));
     }
-  }, [state.loading, state.hasMore, state.page, fetchMovies]);
+  }, [state.loading, state.hasMore, state.page, state.viewedMovieIds]);
 
   /**
    * Retry after error
