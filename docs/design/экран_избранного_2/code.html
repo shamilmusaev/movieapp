@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html class="dark" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Избранное</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#e50914",
+              "background-light": "#f8f5f6",
+              "background-dark": "#121212",
+              "card-dark": "#1a1a1a",
+              "border-dark": "#2d2d2d",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem","lg": "0.75rem","xl": "1rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 300,'GRAD' 0,
+        'opsz' 24
+      }
+      .material-symbols-outlined.filled {
+        font-variation-settings:
+        'FILL' 1,
+        'wght' 300,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark font-display text-gray-200 antialiased">
+<div class="relative flex h-auto min-h-screen w-full flex-col">
+<header class="flex items-center p-4 pb-0 justify-between sticky top-0 z-20 bg-background-dark/80 backdrop-blur-sm">
+<h1 class="text-white text-3xl font-bold tracking-tight flex-1">Избранное</h1>
+<div class="flex w-12 items-center justify-end">
+<button class="flex h-12 max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full bg-transparent text-white/80 hover:text-white transition-colors gap-2 min-w-0 p-0">
+<span class="material-symbols-outlined text-3xl">search</span>
+</button>
+</div>
+</header>
+<main class="flex-grow p-4 pt-2">
+<div class="flex border-b border-border-dark mb-4 text-sm font-medium text-gray-500">
+<button class="relative py-2 px-3 text-white after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-t-sm transition-colors duration-200">
+        Фильмы
+</button>
+<button class="relative py-2 px-3 text-gray-500 hover:text-white transition-colors duration-200">
+        Коллекции
+</button>
+</div>
+<div class="space-y-3" id="films-content">
+<div class="flex items-center bg-card-dark rounded-lg p-3 pr-2 border border-border-dark shadow-sm">
+<div class="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDaxBCs88tScxQDmhtEhfrLZzStM6OdCuEMVbDF8kN6sSCHdA9AlH82wAyVacpZH-8UqD401TjuSRcu9XGOUdxK-W9s1C4bY1PnnxDhMhOTVMZKOSvMMRr4lnC43uEH9KDsSa_Gc57cehQw0QdiRMmkXZIN_i-4YzpLaMse6V-gOZGFGc0IpmR6g_QLWXNdzlmZ3-v5pQSZ6f6BRdA8l7gc3pMagRfr1ksdjIw9ZREQuILhLAKRrXtArH1nqtzq7S85H-p3exyyYKg");'>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-8 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-lg pl-0.5">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="flex-grow ml-3 min-w-0">
+<p class="text-white text-base font-semibold leading-tight truncate">Матрица</p>
+<div class="flex items-center gap-1 text-xs font-medium text-gray-400 mt-1">
+<span class="material-symbols-outlined text-base filled text-amber-400">star</span>
+<span>8.7</span>
+</div>
+</div>
+<div class="flex items-center space-x-2 ml-4">
+<button class="flex items-center justify-center size-8 text-white/70 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<button class="flex items-center justify-center size-8 text-primary/70 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+<div class="flex items-center bg-card-dark rounded-lg p-3 pr-2 border border-border-dark shadow-sm">
+<div class="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCECihj4o6Q5C_DP8BjUjduMZixKi0bHCc6kPTITrWPLKg8bgiQVwEOFZASecwLmei6hvLRbusbNfEKlYpHZBkL6FZpo9yQZTGZ-Jdv-EAygHrHx2lmyw3Q9sz7Aacl5vdAdG1OuwUqUROBMVBzcTHoO9H9hWLCKkpn0_KGEmkuRGtv1XgC-PqE7j6Y45xpOmAeXU95NL_rLz1SROBDxi_UEWOmVOVrSMUTXVfN_-bpN0rTDmoZ2YRIZq79MpLeguKSTwefnZlqm1g");'>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-8 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-lg pl-0.5">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="flex-grow ml-3 min-w-0">
+<p class="text-white text-base font-semibold leading-tight truncate">Интерстеллар</p>
+<div class="flex items-center gap-1 text-xs font-medium text-gray-400 mt-1">
+<span class="material-symbols-outlined text-base filled text-amber-400">star</span>
+<span>8.6</span>
+</div>
+</div>
+<div class="flex items-center space-x-2 ml-4">
+<button class="flex items-center justify-center size-8 text-white/70 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<button class="flex items-center justify-center size-8 text-primary/70 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+<div class="flex items-center bg-card-dark rounded-lg p-3 pr-2 border border-border-dark shadow-sm">
+<div class="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjJ_50w0FEWLAq5tafls7xBlaYdvKMCQcQsvK2Nc9gQaALVamNrvLcjEWGR3mkeUwwlRJvdqa54SpJwDU630OuGA4t-n-UrsvxqnwudAuuZ3GiZloCEgMJupXJbKl0iB8s6PU1FjlsjoUsLs4UcFubD40zR7NyxnqkwyswzrWyLSDLBsoXjWaWV8rs60ZFlCB4oqJENmR0Sl0jAciLfdCSPf-gXz8Zh6o7Ys_8TsvwijweWkpNTSIf3FSOnirxuVBZ1ySlhMvH0KA");'>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-8 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-lg pl-0.5">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="flex-grow ml-3 min-w-0">
+<p class="text-white text-base font-semibold leading-tight truncate">Начало</p>
+<div class="flex items-center gap-1 text-xs font-medium text-gray-400 mt-1">
+<span class="material-symbols-outlined text-base filled text-amber-400">star</span>
+<span>8.8</span>
+</div>
+</div>
+<div class="flex items-center space-x-2 ml-4">
+<button class="flex items-center justify-center size-8 text-white/70 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<button class="flex items-center justify-center size-8 text-primary/70 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+<div class="flex items-center bg-card-dark rounded-lg p-3 pr-2 border border-border-dark shadow-sm">
+<div class="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA22FEtXiVSiJ7iR9PiwcQ0aEInOfvcIpAkc2-TTtpyrGZwbcO3-b1iN5q9B7YrWyECa5gskgDwtXjamO93kwOpB5205mWNRYfaNhyNtYQM5s0xnLjK6bdn97AicEh5IqGhWnbl0zdR7vjkYZSaFEC0n8ff-5TVAhZfYkQEwTuhZfTmsNlNi1UlmSXsrTFmGkk0AOnIr8GxO3LolnehCk0uWRjFdjIkFf63yvLIwWow91kiFC2iNyPAu_4kILqu1Itb8TiagrGOUmw");'>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-8 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-lg pl-0.5">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="flex-grow ml-3 min-w-0">
+<p class="text-white text-base font-semibold leading-tight truncate">Темный рыцарь</p>
+<div class="flex items-center gap-1 text-xs font-medium text-gray-400 mt-1">
+<span class="material-symbols-outlined text-base filled text-amber-400">star</span>
+<span>9.0</span>
+</div>
+</div>
+<div class="flex items-center space-x-2 ml-4">
+<button class="flex items-center justify-center size-8 text-white/70 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<button class="flex items-center justify-center size-8 text-primary/70 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+</div>
+<div class="hidden grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4" id="collections-content">
+<div class="relative aspect-square bg-card-dark rounded-lg overflow-hidden border border-border-dark flex flex-col justify-end p-2 pb-1 group cursor-pointer shadow-sm">
+<div class="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 p-1">
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDaxBCs88tScxQDmhtEhfrLZzStM6OdCuEMVbDF8kN6sSCHdA9AlH82wAyVacpZH-8UqD401TjuSRcu9XGOUdxK-W9s1C4bY1PnnxDhMhOTVMZKOSvMMRr4lnC43uEH9KDsSa_Gc57cehQw0QdiRMmkXZIN_i-4YzpLaMse6V-gOZGFGc0IpmR6g_QLWXNdzlmZ3-v5pQSZ6f6BRdA8l7gc3pMagRfr1ksdjIw9ZREQuILhLAKRrXtArH1nqtzq7S85H-p3exyyYKg");'></div>
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCECihj4o6Q5C_DP8BjUjduMZixKi0bHCc6kPTITrWPLKg8bgiQVwEOFZASecwLmei6hvLRbusbNfEKlYpHZBkL6FZpo9yQZTGZ-Jdv-EAygHrHx2lmyw3Q9sz7Aacl5vdAdG1OuwUqUROBMVBzcTHoO9H9hWLCKkpn0_KGEmkuRGtv1XgC-PqE7j6Y45xpOmAeXU95NL_rLz1SROBDxi_UEWOmVOVrSMUTXVfN_-bpN0rTDmoZ2YRIZq79MpLeguKSTwefnZlqm1g");'></div>
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjJ_50w0FEWLAq5tafls7xBlaYdvKMCQcQsvK2Nc9gQaALVamNrvLcjEWGR3mkeUwwlRJvdqa54SpJwDU630OuGA4t-n-UrsvxqnwudAuuZ3GiZloCEgMJupXJbKl0iB8s6PU1FjlsjoUsLs4UcFubD40zR7NyxnqkwyswzrWyLSDLBsoXjWaWV8rs60ZFlCB4oqJENmR0Sl0jAciLfdCSPf-gXz8Zh6o7Ys_8TsvwijweWkpNTSIf3FSOnirxuVBZ1ySlhMvH0KA");'></div>
+<div class="bg-cover bg-center rounded-sm flex items-center justify-center bg-gray-700">
+<span class="text-white text-sm font-semibold">+5</span>
+</div>
+</div>
+<div class="relative z-10 p-2 pt-10 text-white flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent rounded-b-lg -mx-2 -mb-1">
+<p class="text-sm font-semibold leading-tight line-clamp-2">Мои любимые фильмы</p>
+<span class="text-xs text-gray-400 mt-0.5">8 фильмов</span>
+</div>
+</div>
+<div class="relative aspect-square bg-card-dark rounded-lg overflow-hidden border border-border-dark flex flex-col justify-end p-2 pb-1 group cursor-pointer shadow-sm">
+<div class="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 p-1">
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCECihj4o6Q5C_DP8BjUjduMZixKi0bHCc6kPTITrWPLKg8bgiQVwEOFZASecwLmei6hvLRbusbNfEKlYpHZBkL6FZpo9yQZTGZ-Jdv-EAygHrHx2lmyw3Q9sz7Aacl5vdAdG1OuwUqUROBMVBzcTHoO9H9hWLCKkpn0_KGEmkuRGtv1XgC-PqE7j6Y45xpOmAeXU95NL_rLz1SROBDxi_UEWOmVOVrSMUTXVfN_-bpN0rTDmoZ2YRIZq79MpLeguKSTwefnZlqm1g");'></div>
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjJ_50w0FEWLAq5tafls7xBlaYdvKMCQcQsvK2Nc9gQaALVamNrvLcjEWGR3mkeUwwlRJvdqa54SpJwDU630OuGA4t-n-UrsvxqnwudAuuZ3GiZloCEgMJupXJbKl0iB8s6PU1FjlsjoUsLs4UcFubD40zR7NyxnqkwyswzrWyLSDLBsoXjWaWV8rs60ZFlCB4oqJENmR0Sl0jAciLfdCSPf-gXz8Zh6o7Ys_8TsvwijweWkpNTSIf3FSOnirxuVBZ1ySlhMvH0KA");'></div>
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA22FEtXiVSiJ7iR9PiwcQ0aEInOfvcIpAkc2-TTtpyrGZwbcO3-b1iN5q9B7YrWyECa5gskgDwtXjamO93kwOpB5205mWNRYfaNhyNtYQM5s0xnLjK6bdn97AicEh5IqGhWnbl0zdR7vjkYZSaFEC0n8ff-5TVAhZfYkQEwTuhZfTmsNlNi1UlmSXsrTFmGkk0AOnIr8GxO3LolnehCk0uWRjFdjIkFf63yvLIwWow91kiFC2iNyPAu_4kILqu1Itb8TiagrGOUmw");'></div>
+<div class="bg-cover bg-center rounded-sm flex items-center justify-center bg-gray-700">
+<span class="text-white text-sm font-semibold">+3</span>
+</div>
+</div>
+<div class="relative z-10 p-2 pt-10 text-white flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent rounded-b-lg -mx-2 -mb-1">
+<p class="text-sm font-semibold leading-tight line-clamp-2">Научная фантастика</p>
+<span class="text-xs text-gray-400 mt-0.5">6 фильмов</span>
+</div>
+</div>
+<div class="relative aspect-square bg-card-dark rounded-lg overflow-hidden border border-border-dark flex flex-col justify-end p-2 pb-1 group cursor-pointer shadow-sm">
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-6xl text-gray-500 opacity-70">folder</span>
+</div>
+<div class="relative z-10 p-2 pt-10 text-white flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent rounded-b-lg -mx-2 -mb-1">
+<p class="text-sm font-semibold leading-tight line-clamp-2">Драмы</p>
+<span class="text-xs text-gray-400 mt-0.5">12 фильмов</span>
+</div>
+</div>
+<div class="relative aspect-square bg-card-dark rounded-lg overflow-hidden border border-border-dark flex flex-col justify-end p-2 pb-1 group cursor-pointer shadow-sm">
+<div class="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 p-1">
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCECihj4o6Q5C_DP8BjUjduMZixKi0bHCc6kPTITrWPLKg8bgiQVwEOFZASecwLmei6hvLRbusbNfEKlYpHZBkL6FZpo9yQZTGZ-Jdv-EAygHrHx2lmyw3Q9sz7Aacl5vdAdG1OuwUqUROBMVBzcTHoO9H9hWLCKkpn0_KGEmkuRGtv1XgC-PqE7j6Y45xpOmAeXU95NL_rLz1SROBDxi_UEWOmVOVrSMUTXVfN_-bpN0rTDmoZ2YRIZq79MpLeguKSTwefnZlqm1g");'></div>
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjJ_50w0FEWLAq5tafls7xBlaYdvKMCQcQsvK2Nc9gQaALVamNrvLcjEWGR3mkeUwwlRJvdqa54SpJwDU630OuGA4t-n-UrsvxqnwudAuuZ3GiZloCEgMJupXJbKl0iB8s6PU1FjlsjoUsLs4UcFubD40zR7NyxnqkwyswzrWyLSDLBsoXjWaWV8rs60ZFlCB4oqJENmR0Sl0jAciLfdCSPf-gXz8Zh6o7Ys_8TsvwijweWkpNTSIf3FSOnirxuVBZ1ySlhMvH0KA");'></div>
+<div class="bg-cover bg-center rounded-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA22FEtXiVSiJ7iR9PiwcQ0aEInOfvcIpAkc2-TTtpyrGZwbcO3-b1iN5q9B7YrWyECa5gskgDwtXjamO93kwOpB5205mWNRYfaNhyNtYQM5s0xnLjK6bdn97AicEh5IqGhWnbl0zdR7vjkYZSaFEC0n8ff-5TVAhZfYkQEwTuhZfTmsNlNi1UlmSXsrTFmGkk0AOnIr8GxO3LolnehCk0uWRjFdjIkFf63yvLIwWow91kiFC2iNyPAu_4kILqu1Itb8TiagrGOUmw");'></div>
+<div class="bg-cover bg-center rounded-sm flex items-center justify-center bg-gray-700">
+<span class="text-white text-sm font-semibold">+2</span>
+</div>
+</div>
+<div class="relative z-10 p-2 pt-10 text-white flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent rounded-b-lg -mx-2 -mb-1">
+<p class="text-sm font-semibold leading-tight line-clamp-2">Рекомендуем</p>
+<span class="text-xs text-gray-400 mt-0.5">5 фильмов</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const filmsButton = document.querySelector('.flex > button:nth-child(1)');
+        const collectionsButton = document.querySelector('.flex > button:nth-child(2)');
+        const filmsContent = document.getElementById('films-content');
+        const collectionsContent = document.getElementById('collections-content');
+        const showFilms = () => {
+            filmsButton.classList.add('text-white', 'after:w-full', 'after:bg-primary');
+            filmsButton.classList.remove('text-gray-500', 'hover:text-white', 'after:w-0');
+            collectionsButton.classList.add('text-gray-500', 'hover:text-white', 'after:w-0');
+            collectionsButton.classList.remove('text-white', 'after:w-full', 'after:bg-primary');
+            filmsContent.classList.remove('hidden');
+            collectionsContent.classList.add('hidden');
+        };
+        const showCollections = () => {
+            collectionsButton.classList.add('text-white', 'after:w-full', 'after:bg-primary');
+            collectionsButton.classList.remove('text-gray-500', 'hover:text-white', 'after:w-0');
+            filmsButton.classList.add('text-gray-500', 'hover:text-white', 'after:w-0');
+            filmsButton.classList.remove('text-white', 'after:w-full', 'after:bg-primary');
+            collectionsContent.classList.remove('hidden');
+            filmsContent.classList.add('hidden');
+        };
+        filmsButton.addEventListener('click', showFilms);
+        collectionsButton.addEventListener('click', showCollections);
+        // Initialize state (assuming Films is active by default)
+        showFilms();
+    });
+</script>
+</body></html>

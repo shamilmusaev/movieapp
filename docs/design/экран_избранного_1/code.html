@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html class="dark" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Избранное</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#e50914",
+              "background-light": "#f8f5f6",
+              "background-dark": "#121212",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "8px", // Set to 8px as requested
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col">
+<header class="flex items-center p-4 pb-2 justify-between sticky top-0 z-10 bg-background-dark/80 backdrop-blur-sm">
+<h1 class="text-white text-3xl font-black tracking-tighter flex-1">Избранное</h1>
+<div class="flex w-12 items-center justify-end">
+<button class="flex h-12 max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full bg-transparent text-white/80 hover:text-white transition-colors gap-2 min-w-0 p-0">
+<span class="material-symbols-outlined text-3xl">search</span>
+</button>
+</div>
+</header>
+<main class="flex-grow p-4 pt-2">
+<div class="flex border-b border-gray-700 mb-4 mx-2">
+<button class="py-2 px-0 text-lg font-bold text-primary border-b-2 border-primary mr-6 -mb-px">
+        Фильмы
+</button>
+<button class="py-2 px-0 text-lg font-bold text-white/60 hover:text-white transition-colors -mb-px">
+        Коллекции
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="relative bg-background-dark rounded-lg overflow-hidden flex flex-col">
+<div class="relative">
+<div class="w-full bg-center bg-no-repeat aspect-[1/1] bg-cover rounded-t-lg" data-alt="A dramatic scene from The Matrix movie with green code falling." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDaxBCs88tScxQDmhtEhfrLZzStM6OdCuEMVbDF8kN6sSCHdA9AlH82wAyVacpZH-8UqD401TjuSRcu9XGOUdxK-W9s1C4bY1PnnxDhMhOTVMZKOSvMMRr4lnC43uEH9KDsSa_Gc57cehQw0QdiRMmkXZIN_i-4YzpLaMse6V-gOZGFGc0IpmR6g_QLWXNdzlmZ3-v5pQSZ6f6BRdA8l7gc3pMagRfr1ksdjIw9ZREQuILhLAKRrXtArH1nqtzq7S85H-p3exyyYKg");'></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-10 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-2xl pl-0.5">play_arrow</span>
+</button>
+</div>
+<button class="absolute top-2 right-2 flex items-center justify-center size-8 bg-black/50 backdrop-blur-sm rounded-full text-primary hover:bg-black/70 transition-colors z-10">
+<span class="material-symbols-outlined text-xl !font-fill text-primary">remove_circle</span>
+</button>
+</div>
+<div class="p-2 pt-1 flex flex-col gap-1 flex-grow">
+<p class="text-white text-sm font-bold leading-tight line-clamp-2">Матрица</p>
+<div class="flex items-center gap-1 text-xs font-normal text-white/60 mt-auto">
+<span class="material-symbols-outlined text-sm text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>8.7</span>
+</div>
+</div>
+</div>
+<div class="relative bg-background-dark rounded-lg overflow-hidden flex flex-col">
+<div class="relative">
+<div class="w-full bg-center bg-no-repeat aspect-[1/1] bg-cover rounded-t-lg" data-alt="A still from Interstellar showing a spaceship near a black hole." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCECihj4o6Q5C_DP8BjUjduMZixKi0bHCc6kPTITrWPLKg8bgiQVwEOFZASecwLmei6hvLRbusbNfEKlYpHZBkL6FZpo9yQZTGZ-Jdv-EAygHrHx2lmyw3Q9sz7Aacl5vdAdG1OuwUqUROBMVBzcTHoO9H9hWLCKkpn0_KGEmkuRGtv1XgC-PqE7j6Y45xpOmAeXU95NL_rLz1SROBDxi_UEWOmVOVrSMUTXVfN_-bpN0rTDmoZ2YRIZq79MpLeguKSTwefnZlqm1g");'></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-10 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-2xl pl-0.5">play_arrow</span>
+</button>
+</div>
+<button class="absolute top-2 right-2 flex items-center justify-center size-8 bg-black/50 backdrop-blur-sm rounded-full text-primary hover:bg-black/70 transition-colors z-10">
+<span class="material-symbols-outlined text-xl !font-fill text-primary">remove_circle</span>
+</button>
+</div>
+<div class="p-2 pt-1 flex flex-col gap-1 flex-grow">
+<p class="text-white text-sm font-bold leading-tight line-clamp-2">Интерстеллар</p>
+<div class="flex items-center gap-1 text-xs font-normal text-white/60 mt-auto">
+<span class="material-symbols-outlined text-sm text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>8.6</span>
+</div>
+</div>
+</div>
+<div class="relative bg-background-dark rounded-lg overflow-hidden flex flex-col">
+<div class="relative">
+<div class="w-full bg-center bg-no-repeat aspect-[1/1] bg-cover rounded-t-lg" data-alt="The iconic spinning top from the movie Inception on a wooden table." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjJ_50w0FEWLAq5tafls7xBlaYdvKMCQcQsvK2Nc9gQaALVamNrvLcjEWGR3mkeUwwlRJvdqa54SpJwDU630OuGA4t-n-UrsvxqnwudAuuZ3GiZloCEgMJupXJbKl0iB8s6PU1FjlsjoUsLs4UcFubD40zR7NyxnqkwyswzrWyLSDLBsoXjWaWV8rs60ZFlCB4oqJENmR0Sl0jAciLfdCSPf-gXz8Zh6o7Ys_8TsvwijweWkpNTSIf3FSOnirxuVBZ1ySlhMvH0KA");'></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-10 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-2xl pl-0.5">play_arrow</span>
+</button>
+</div>
+<button class="absolute top-2 right-2 flex items-center justify-center size-8 bg-black/50 backdrop-blur-sm rounded-full text-primary hover:bg-black/70 transition-colors z-10">
+<span class="material-symbols-outlined text-xl !font-fill text-primary">remove_circle</span>
+</button>
+</div>
+<div class="p-2 pt-1 flex flex-col gap-1 flex-grow">
+<p class="text-white text-sm font-bold leading-tight line-clamp-2">Начало</p>
+<div class="flex items-center gap-1 text-xs font-normal text-white/60 mt-auto">
+<span class="material-symbols-outlined text-sm text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>8.8</span>
+</div>
+</div>
+</div>
+<div class="relative bg-background-dark rounded-lg overflow-hidden flex flex-col">
+<div class="relative">
+<div class="w-full bg-center bg-no-repeat aspect-[1/1] bg-cover rounded-t-lg" data-alt="A thrilling scene from The Dark Knight." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA22FEtXiVSiJ7iR9PiwcQ0aEInOfvcIpAkc2-TTtpyrGZwbcO3-b1iN5q9B7YrWyECa5gskgDwtXjamO93kwOpB5205mWNRYfaNhyNtYQM5s0xnLjK6bdn97AicEh5IqGhWnbl0zdR7vjkYZSaFEC0n8ff-5TVAhZfYkQEwTuhZfTmsNlNi1UlmSXsrTFmGkk0AOnIr8GxO3LolnehCk0uWRjFdjIkFf63yvLIwWow91kiFC2iNyPAu_4kILqu1Itb8TiagrGOUmw");'></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-10 bg-primary/80 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-2xl pl-0.5">play_arrow</span>
+</button>
+</div>
+<button class="absolute top-2 right-2 flex items-center justify-center size-8 bg-black/50 backdrop-blur-sm rounded-full text-primary hover:bg-black/70 transition-colors z-10">
+<span class="material-symbols-outlined text-xl !font-fill text-primary">remove_circle</span>
+</button>
+</div>
+<div class="p-2 pt-1 flex flex-col gap-1 flex-grow">
+<p class="text-white text-sm font-bold leading-tight line-clamp-2">Темный рыцарь</p>
+<div class="flex items-center gap-1 text-xs font-normal text-white/60 mt-auto">
+<span class="material-symbols-outlined text-sm text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>9.0</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
