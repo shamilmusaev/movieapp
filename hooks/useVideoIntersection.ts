@@ -59,11 +59,19 @@ export function useVideoIntersection(
   const [isVisible, setIsVisible] = useState(false);
   const [intersectionRatio, setIntersectionRatio] = useState(0);
 
+  // Stabilize callback to prevent observer recreation
+  const callbackRef = useRef(onVisibilityChange);
+
+  // Update callback ref when it changes (but don't recreate observer)
+  useEffect(() => {
+    callbackRef.current = onVisibilityChange;
+  }, [onVisibilityChange]);
+
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
 
-    // Create Intersection Observer
+    // Create Intersection Observer with stable callback
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -73,9 +81,9 @@ export function useVideoIntersection(
           setIntersectionRatio(ratio);
           setIsVisible(visible);
 
-          // Call callback if provided
-          if (onVisibilityChange) {
-            onVisibilityChange(visible, ratio);
+          // Call callback from ref (always current version)
+          if (callbackRef.current) {
+            callbackRef.current(visible, ratio);
           }
         });
       },
@@ -92,7 +100,7 @@ export function useVideoIntersection(
     return () => {
       observer.disconnect();
     };
-  }, [threshold, rootMargin, onVisibilityChange]);
+  }, [threshold, rootMargin]); // onVisibilityChange removed from deps
 
   return {
     ref,
