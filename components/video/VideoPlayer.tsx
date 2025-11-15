@@ -9,7 +9,10 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 
-const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
+const ReactPlayer = dynamic(() => import('react-player'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-gray-900" />
+});
 
 const MUTE_PREFERENCE_KEY = 'video-mute-preference';
 
@@ -113,11 +116,36 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(1);
 
   const playerRef = useRef<any>(null);
+  const readyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Validate URL on mount
+  useEffect(() => {
+    if (!url || url.trim() === '') {
+      console.error('VideoPlayer: empty or invalid URL provided');
+      setHasError(true);
+    }
+  }, [url]);
 
   // Log for debugging (remove in production)
   useEffect(() => {
-    console.log('VideoPlayer state:', { isActive, autoplay, isPlaying, isMuted, isReady });
-  }, [isActive, autoplay, isPlaying, isMuted, isReady]);
+    console.log('VideoPlayer state:', { isActive, autoplay, isPlaying, isMuted, isReady, url });
+  }, [isActive, autoplay, isPlaying, isMuted, isReady, url]);
+
+  // Force isReady to true after 3 seconds if onReady doesn't fire (iOS Safari workaround)
+  useEffect(() => {
+    readyTimeoutRef.current = setTimeout(() => {
+      if (!isReady) {
+        console.warn('VideoPlayer: forcing isReady=true after timeout (iOS workaround)');
+        setIsReady(true);
+      }
+    }, 3000);
+
+    return () => {
+      if (readyTimeoutRef.current) {
+        clearTimeout(readyTimeoutRef.current);
+      }
+    };
+  }, [url, isReady]);
 
   // Sync external mute state
   useEffect(() => {
@@ -168,8 +196,15 @@ export function VideoPlayer({
 
   // Handle ready callback
   const handleReady = useCallback(() => {
+    console.log('VideoPlayer: handleReady called');
     setIsReady(true);
     setHasError(false);
+
+    // Clear timeout if onReady fires
+    if (readyTimeoutRef.current) {
+      clearTimeout(readyTimeoutRef.current);
+      readyTimeoutRef.current = null;
+    }
 
     // Aggressively start playing if video is active
     if (isActive && autoplay) {
@@ -240,13 +275,6 @@ export function VideoPlayer({
 
   return (
     <div className={`relative w-full aspect-video ${className}`}>
-      {/* Loading state */}
-      {!isReady && !enableLightMode && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-
       {/* React Player */}
       <ReactPlayer
         {...({
