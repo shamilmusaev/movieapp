@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect, memo, useMemo } from 'react';
 import { VideoCard } from './VideoCard';
 import { FeedControls } from './FeedControls';
 import { useActiveVideoIndex } from '@/hooks/useActiveVideoIndex';
+import { useFeedGestures } from '@/hooks/useFeedGestures';
 import type { MovieWithTrailer } from '@/types/feed.types';
 
 interface FeedContainerProps {
@@ -59,6 +60,13 @@ function FeedContainerComponent({
     nearEndOffset: 8, // Load more when 8 videos remaining (instead of 3)
   });
 
+  // Improved gesture handling with @use-gesture
+  const gestureHandlers = useFeedGestures({
+    onSwipeUp: goNext,
+    onSwipeDown: goPrevious,
+    enabled: true,
+  });
+
   useEffect(() => {
     if (movies.length > 0 && activeVideoId === null) {
       setActiveVideoId(movies[0].id);
@@ -100,45 +108,7 @@ function FeedContainerComponent({
     return () => scrollNode.removeEventListener('wheel', handleWheel);
   }, [scrollNode, goNext, goPrevious]);
 
-  useEffect(() => {
-    if (!scrollNode) return;
-
-    let touchStartY = 0;
-    let touchStartTime = 0;
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      touchStartY = event.touches[0].clientY;
-      touchStartTime = Date.now();
-    };
-
-    const handleTouchEnd = (event: TouchEvent) => {
-      if (touchStartTime === 0 || event.changedTouches.length === 0) return;
-
-      const deltaY = event.changedTouches[0].clientY - touchStartY;
-      const duration = Date.now() - touchStartTime;
-
-      if (Math.abs(deltaY) > 60 && duration < 400) {
-        event.preventDefault();
-        if (deltaY < 0) {
-          goNext();
-        } else {
-          goPrevious();
-        }
-      }
-
-      touchStartTime = 0;
-      touchStartY = 0;
-    };
-
-    scrollNode.addEventListener('touchstart', handleTouchStart, { passive: true });
-    scrollNode.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-    return () => {
-      scrollNode.removeEventListener('touchstart', handleTouchStart);
-      scrollNode.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [scrollNode, goNext, goPrevious]);
+  // Touch handling is now managed by @use-gesture (gestureHandlers)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -164,11 +134,13 @@ function FeedContainerComponent({
       {/* Vertical scroll container with snap points */}
       <div
         ref={combinedContainerRef}
+        {...gestureHandlers}
         className="w-full h-[calc(100vh-60px)] overflow-y-scroll snap-y snap-mandatory scroll-smooth"
         style={{
           scrollbarWidth: 'none', // Firefox
           msOverflowStyle: 'none', // IE/Edge
           WebkitOverflowScrolling: 'touch', // iOS momentum scrolling
+          touchAction: 'pan-y', // Allow vertical panning only
         }}
       >
         {/* Hide scrollbar for Webkit browsers */}

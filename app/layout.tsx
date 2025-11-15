@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { WebVitalsReporter } from "@/components/WebVitalsReporter";
 
 export const metadata: Metadata = {
   title: {
@@ -48,6 +49,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://i.ytimg.com" />
       </head>
       <body className="antialiased">
+        <WebVitalsReporter />
         {children}
       </body>
     </html>
