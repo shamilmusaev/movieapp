@@ -106,13 +106,18 @@ export function VideoPlayer({
   // Cache mute preference on mount
   const initialMuted = useRef(externalIsMuted ?? getMutePreference()).current;
 
-  const [isPlaying, setIsPlaying] = useState(autoplay && isActive);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isReady, setIsReady] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [volume, setVolume] = useState(1);
 
   const playerRef = useRef<any>(null);
+
+  // Log for debugging (remove in production)
+  useEffect(() => {
+    console.log('VideoPlayer state:', { isActive, autoplay, isPlaying, isMuted, isReady });
+  }, [isActive, autoplay, isPlaying, isMuted, isReady]);
 
   // Sync external mute state
   useEffect(() => {
@@ -124,15 +129,25 @@ export function VideoPlayer({
 
   // Control playback based on isActive
   useEffect(() => {
-    setIsPlaying(isActive && autoplay);
+    if (isActive && autoplay) {
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
   }, [isActive, autoplay]);
 
   // Handle ready callback
   const handleReady = useCallback(() => {
     setIsReady(true);
     setHasError(false);
+
+    // Start playing if video is active and autoplay is enabled
+    if (isActive && autoplay) {
+      setIsPlaying(true);
+    }
+
     onReady?.();
-  }, [onReady]);
+  }, [onReady, isActive, autoplay]);
 
   // Handle error callback
   const handleError = useCallback((error: any) => {
@@ -204,13 +219,19 @@ export function VideoPlayer({
           controls: false,
           config: {
             youtube: {
-              playerOptions: {
+              playerVars: {
                 modestbranding: 1,
                 rel: 0,
                 fs: 0,
                 disablekb: 1,
-                autoplay: 1,
                 playsinline: 1,
+                iv_load_policy: 3,
+              },
+              onReady: (event: any) => {
+                // Ensure muted before playing
+                if (isMuted) {
+                  event.target.mute();
+                }
               },
             },
             file: {
