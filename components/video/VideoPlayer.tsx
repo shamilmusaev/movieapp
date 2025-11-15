@@ -103,8 +103,8 @@ export function VideoPlayer({
   className = '',
   enableLightMode = false,
 }: VideoPlayerProps) {
-  // Cache mute preference on mount
-  const initialMuted = useRef(externalIsMuted ?? getMutePreference()).current;
+  // Cache mute preference on mount - always start muted for autoplay
+  const initialMuted = useRef(externalIsMuted ?? true).current;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -131,19 +131,66 @@ export function VideoPlayer({
   useEffect(() => {
     if (isActive && autoplay) {
       setIsPlaying(true);
+
+      // Also try to force play when becoming active
+      if (isReady && playerRef.current) {
+        setTimeout(() => {
+          const player = playerRef.current?.getInternalPlayer();
+          if (player && typeof player.playVideo === 'function') {
+            try {
+              if (typeof player.mute === 'function') {
+                player.mute();
+              }
+              player.playVideo();
+              console.log('YouTube player: forced play on active change');
+            } catch (err) {
+              console.error('Failed to play on active:', err);
+            }
+          }
+        }, 50);
+      }
     } else {
       setIsPlaying(false);
+
+      // Pause when becoming inactive
+      if (isReady && playerRef.current) {
+        const player = playerRef.current?.getInternalPlayer();
+        if (player && typeof player.pauseVideo === 'function') {
+          try {
+            player.pauseVideo();
+          } catch (err) {
+            console.error('Failed to pause:', err);
+          }
+        }
+      }
     }
-  }, [isActive, autoplay]);
+  }, [isActive, autoplay, isReady]);
 
   // Handle ready callback
   const handleReady = useCallback(() => {
     setIsReady(true);
     setHasError(false);
 
-    // Start playing if video is active and autoplay is enabled
+    // Aggressively start playing if video is active
     if (isActive && autoplay) {
       setIsPlaying(true);
+
+      // Force play after a small delay to ensure player is fully ready
+      setTimeout(() => {
+        const player = playerRef.current?.getInternalPlayer();
+        if (player && typeof player.playVideo === 'function') {
+          try {
+            // Ensure muted for YouTube autoplay policy
+            if (typeof player.mute === 'function') {
+              player.mute();
+            }
+            player.playVideo();
+            console.log('YouTube player: forced playVideo()');
+          } catch (err) {
+            console.error('Failed to force play:', err);
+          }
+        }
+      }, 100);
     }
 
     onReady?.();
@@ -220,18 +267,20 @@ export function VideoPlayer({
           config: {
             youtube: {
               playerVars: {
+                autoplay: 1,
                 modestbranding: 1,
                 rel: 0,
                 fs: 0,
                 disablekb: 1,
                 playsinline: 1,
                 iv_load_policy: 3,
+                controls: 0,
+                mute: 1, // Always start muted for autoplay
               },
               onReady: (event: any) => {
                 // Ensure muted before playing
-                if (isMuted) {
-                  event.target.mute();
-                }
+                event.target.mute();
+                console.log('YouTube onReady callback, muted');
               },
             },
             file: {
