@@ -56,6 +56,7 @@ function FeedContainerComponent({
     itemCount: movies.length,
     onActiveChange: handleActiveChange,
     onNearEnd: handleNearEnd,
+    nearEndOffset: 8, // Load more when 8 videos remaining (instead of 3)
   });
 
   useEffect(() => {
@@ -180,7 +181,8 @@ function FeedContainerComponent({
         {/* Video cards */}
         {movies.map((movie, index) => {
           const isActive = movie.id === activeVideoId;
-          const shouldRenderPlayer = Math.abs(index - activeIndex) <= 1;
+          // Preload radius: load 5 videos before and after active (11 total)
+          const shouldRenderPlayer = Math.abs(index - activeIndex) <= 5;
 
           return (
             <VideoCard

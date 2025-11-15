@@ -56,6 +56,7 @@ interface VideoPlayerProps {
 
   /**
    * Enable light mode (show thumbnail before loading player)
+   * Default: false for TikTok-style autoplay experience
    */
   enableLightMode?: boolean;
 }
@@ -100,7 +101,7 @@ export function VideoPlayer({
   onReady,
   onError,
   className = '',
-  enableLightMode = true,
+  enableLightMode = false,
 }: VideoPlayerProps) {
   // Cache mute preference on mount
   const initialMuted = useRef(externalIsMuted ?? getMutePreference()).current;
@@ -208,12 +209,15 @@ export function VideoPlayer({
                 rel: 0,
                 fs: 0,
                 disablekb: 1,
+                autoplay: 1,
+                playsinline: 1,
               },
             },
             file: {
               attributes: {
                 controlsList: 'nodownload',
                 disablePictureInPicture: true,
+                preload: 'auto',
               },
             },
           },
