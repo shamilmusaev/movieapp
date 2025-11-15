@@ -133,19 +133,17 @@ export function VideoPlayer({
 
   // Force isReady to true after 3 seconds if onReady doesn't fire (iOS Safari workaround)
   useEffect(() => {
-    readyTimeoutRef.current = setTimeout(() => {
-      if (!isReady) {
-        console.warn('VideoPlayer: forcing isReady=true after timeout (iOS workaround)');
-        setIsReady(true);
-      }
+    const timeout = setTimeout(() => {
+      setIsReady(true);
+      console.warn('VideoPlayer: forcing isReady=true after timeout (iOS workaround)');
     }, 3000);
 
+    readyTimeoutRef.current = timeout;
+
     return () => {
-      if (readyTimeoutRef.current) {
-        clearTimeout(readyTimeoutRef.current);
-      }
+      clearTimeout(timeout);
     };
-  }, [url, isReady]);
+  }, [url]);
 
   // Sync external mute state
   useEffect(() => {
